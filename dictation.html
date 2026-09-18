@@ -277,7 +277,7 @@ body[data-sana-device="phone"] dialog{
 </dialog>
 <script>
 const DEFAULT_TEXT = "تدوينُ رؤوسِ الأقلامِ إحدى التقنياتِ التي دعتِ الحاجةُ إليها، نظرًا لكثرةِ وسائلِ الاتصالِ، فلمَ لا تبادرُ إلى استخدامِ هذه التقنية في دراسِتك؟";
-const $ = id => document.getElementById(id);
+window.$ = window.$ || function(id){ return document.getElementById(id); };
 
 let words = [], idx = 0, score = 0, tries = 0, wrongs = [], sentenceMode = false, rate = 0.9;
 let mode = 'kb', tileStr = '';
