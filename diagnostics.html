@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<script src="reading-app-config.js"></script>
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>فحص النظام — مدرّب القراءة</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --steel:#1c2733;
+  --steel-2:#2b3a49;
+  --slate:#5d7183;
+  --mist:#eef2f5;
+  --card:#ffffff;
+  --line:#d4dde4;
+  --pass:#0f7b52;
+  --pass-bg:#e4f4ec;
+  --fail:#b3261e;
+  --fail-bg:#fbe9e7;
+  --warn:#8a5a00;
+  --warn-bg:#fdf1dc;
+  --busy:#2b5f9e;
+  --busy-bg:#e7f0fa;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --ui:"IBM Plex Sans Arabic",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--ui);
+  background:var(--mist);
+  color:var(--steel);
+  line-height:1.65;
+  padding:0 14px 60px;
+}
+.wrap{max-width:820px;margin:0 auto}
+
+/* ---------- header ---------- */
+header{
+  background:var(--steel);
+  color:#fff;
+  margin:0 -14px 18px;
+  padding:26px 20px 22px;
+}
+header .inner{max-width:820px;margin:0 auto}
+h1{
+  font-size:1.5rem;
+  font-weight:700;
+  margin:0 0 4px;
+  letter-spacing:-.01em;
+}
+header p{margin:0;color:#a9bccd;font-size:.9rem}
+.verdict{
+  margin-top:18px;
+  background:var(--steel-2);
+  border-radius:12px;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.verdict .dot{
+  width:12px;height:12px;border-radius:50%;
+  background:#6b7f91;flex:none;
+}
+.verdict.ok .dot{background:#3ddc97;box-shadow:0 0 0 4px rgba(61,220,151,.18)}
+.verdict.bad .dot{background:#ff6b5e;box-shadow:0 0 0 4px rgba(255,107,94,.18)}
+.verdict.warn .dot{background:#ffc247;box-shadow:0 0 0 4px rgba(255,194,71,.18)}
+.verdict b{display:block;font-size:1.02rem}
+.verdict span{display:block;font-size:.84rem;color:#a9bccd}
+
+/* ---------- actions ---------- */
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+button{
+  font:600 .93rem var(--ui);
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--steel);
+  border-radius:10px;
+  padding:11px 16px;
+  cursor:pointer;
+  transition:background .12s,border-color .12s;
+}
+button:hover{background:#f7fafc}
+button:focus-visible{outline:2px solid var(--busy);outline-offset:2px}
+button.primary{background:var(--steel);color:#fff;border-color:var(--steel)}
+button.primary:hover{background:var(--steel-2)}
+button:disabled{opacity:.5;cursor:default}
+
+/* ---------- sections ---------- */
+section{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  margin-bottom:14px;
+  overflow:hidden;
+}
+section > h2{
+  font-size:.95rem;
+  font-weight:600;
+  margin:0;
+  padding:13px 16px;
+  border-bottom:1px solid var(--line);
+  background:#fafcfd;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+section > h2 .tally{
+  font:500 .78rem var(--mono);
+  color:var(--slate);
+}
+
+/* ---------- check rows ---------- */
+.check{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:10px;
+  align-items:start;
+  padding:12px 16px;
+  border-bottom:1px solid #eef2f5;
+}
+.check:last-child{border-bottom:0}
+.check .icon{
+  width:22px;height:22px;border-radius:6px;
+  display:grid;place-items:center;
+  font-size:.78rem;font-weight:700;
+  flex:none;margin-top:1px;
+}
+.pass .icon{background:var(--pass-bg);color:var(--pass)}
+.fail .icon{background:var(--fail-bg);color:var(--fail)}
+.warn .icon{background:var(--warn-bg);color:var(--warn)}
+.busy .icon{background:var(--busy-bg);color:var(--busy)}
+.idle .icon{background:#eef2f5;color:var(--slate)}
+.check .body .name{font-weight:600;font-size:.92rem}
+.check .body .detail{
+  font-size:.83rem;color:var(--slate);
+  margin-top:2px;
+  overflow-wrap:anywhere;
+}
+.check .body .fix{
+  margin-top:7px;
+  background:var(--warn-bg);
+  border-right:3px solid #e0a63c;
+  border-radius:0 8px 8px 0;
+  padding:8px 11px;
+  font-size:.83rem;
+  color:#6b4a0c;
+}
+.check .body .fix b{display:block;margin-bottom:2px}
+.check .val{
+  font:500 .78rem var(--mono);
+  color:var(--slate);
+  white-space:nowrap;
+  padding-top:2px;
+}
+
+/* ---------- console ---------- */
+#log{
+  font:400 .79rem var(--mono);
+  background:#131c26;
+  color:#c9d6e2;
+  padding:0;
+  margin:0;
+  max-height:340px;
+  overflow:auto;
+  direction:ltr;
+  text-align:left;
+}
+#log:empty::after{
+  content:"No errors captured yet.";
+  display:block;
+  padding:16px;
+  color:#5d7183;
+}
+.logline{
+  padding:9px 14px;
+  border-bottom:1px solid #1e2a36;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.logline .when{color:#5d7183;margin-left:8px}
+.logline.error{border-right:3px solid #ff6b5e}
+.logline.warn{border-right:3px solid #ffc247}
+.logline.info{border-right:3px solid #4a90d9}
+.logline .where{display:block;color:#7d93a8;font-size:.74rem;margin-top:3px}
+
+/* ---------- misc ---------- */
+.note{
+  font-size:.85rem;
+  color:var(--slate);
+  padding:12px 16px;
+  background:#fafcfd;
+  border-top:1px solid var(--line);
+}
+.note code{font:500 .82em var(--mono);background:#eef2f5;padding:1px 5px;border-radius:4px}
+#report{
+  width:100%;height:230px;
+  font:400 .78rem var(--mono);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:11px;
+  direction:ltr;text-align:left;
+  background:var(--card);
+  color:var(--steel);
+  resize:vertical;
+}
+.hide{display:none!important}
+@media(max-width:560px){
+  .check{grid-template-columns:auto 1fr}
+  .check .val{grid-column:2;padding-top:0}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <h1>فحص النظام</h1>
+    <p>يتحقّق من كل ما يحتاجه مدرّب القراءة ليعمل، ويسجّل أي خطأ يحدث.</p>
+    <div class="verdict idle" id="verdict">
+      <span class="dot"></span>
+      <div>
+        <b id="verdictTitle">جاهز للفحص</b>
+        <span id="verdictText">اضغط «ابدأ الفحص» — بعض الفحوص ستطلب إذن الميكروفون.</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="actions">
+    <button class="primary" id="runBtn">ابدأ الفحص</button>
+    <button id="micBtn">اختبر الميكروفون</button>
+    <button id="ttsBtn">اختبر صوت Sana</button>
+    <button id="sttBtn">اختبر التعرّف على الكلام</button>
+    <button id="copyBtn">انسخ التقرير</button>
+  </div>
+
+  <section>
+    <h2>الجهاز والمتصفح <span class="tally" id="tallyEnv"></span></h2>
+    <div id="groupEnv"></div>
+  </section>
+
+  <section>
+    <h2>الأذونات <span class="tally" id="tallyPerm"></span></h2>
+    <div id="groupPerm"></div>
+    <div class="note" id="permNote">
+      إذن الميكروفون لا يُطلب إلا عند الضغط على زر يستخدمه. إن رفضته مرة على iPad،
+      فلن يُسأل مرة أخرى — أعد ضبطه من <code>الإعدادات ← Safari ← الميكروفون</code>.
+    </div>
+  </section>
+
+  <section>
+    <h2>تسجيل الصوت ومعالجته <span class="tally" id="tallyAudio"></span></h2>
+    <div id="groupAudio"></div>
+  </section>
+
+  <section>
+    <h2>التخزين على الجهاز <span class="tally" id="tallyStore"></span></h2>
+    <div id="groupStore"></div>
+  </section>
+
+  <section>
+    <h2>خدمة Azure <span class="tally" id="tallyAzure"></span></h2>
+    <div id="groupAzure"></div>
+  </section>
+
+  <section>
+    <h2>سجلّ الأخطاء <span class="tally" id="tallyLog">0</span></h2>
+    <div id="log"></div>
+    <div class="note">
+      يلتقط هذا السجلّ أخطاء JavaScript، والوعود المرفوضة، ونداءات
+      <code>console.error</code> و<code>console.warn</code>، وفشل تحميل الملفات —
+      في هذه الصفحة وفي أي صفحة تضيف إليها مقطع الالتقاط.
+    </div>
+  </section>
+
+  <section>
+    <h2>التقرير الكامل</h2>
+    <div style="padding:14px 16px">
+      <label for="report" class="sr-only">تقرير الفحص</label>
+      <textarea id="report" readonly spellcheck="false"></textarea>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   1. ERROR CAPTURE — installed first so it catches everything
+   ============================================================ */
+const errorLog = [];
+const logEl = document.getElementById('log');
+
+function pushLog(level, message, where){
+  const entry = { level, message:String(message), where:where||'', at:new Date().toISOString() };
+  errorLog.push(entry);
+  const div = document.createElement('div');
+  div.className = 'logline ' + level;
+  const time = new Date().toLocaleTimeString('en-GB');
+  const when = document.createElement('span');
+  when.className = 'when';
+  when.textContent = time;
+  div.appendChild(when);
+  div.appendChild(document.createTextNode(entry.message));
+  if(entry.where){
+    const whereEl = document.createElement('span');
+    whereEl.className = 'where';
+    whereEl.textContent = entry.where;
+    div.appendChild(whereEl);
+  }
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+  document.getElementById('tallyLog').textContent = errorLog.length;
+  refreshReport();
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+window.addEventListener('error', e => {
+  if(e.target && e.target !== window && e.target.src){
+    pushLog('error', 'فشل تحميل ملف: ' + e.target.src, e.target.tagName);
+    return;
+  }
+  pushLog('error', e.message, (e.filename||'') + ':' + (e.lineno||0) + ':' + (e.colno||0));
+}, true);
+
+window.addEventListener('unhandledrejection', e => {
+  const r = e.reason;
+  pushLog('error', 'وعد مرفوض: ' + (r && r.message ? r.message : r), r && r.stack ? String(r.stack).split('\n')[1] : '');
+});
+
+['error','warn'].forEach(fn => {
+  const original = console[fn].bind(console);
+  console[fn] = (...args) => {
+    pushLog(fn === 'error' ? 'error' : 'warn', args.map(a => {
+      if(a instanceof Error) return a.message;
+      if(typeof a === 'object') { try { return JSON.stringify(a); } catch(_) { return String(a); } }
+      return String(a);
+    }).join(' '), 'console.' + fn);
+    original(...args);
+  };
+});
+
+/* ============================================================
+   2. CHECK RENDERING
+   ============================================================ */
+const checks = {};
+
+function addCheck(group, id, name){
+  const el = document.createElement('div');
+  el.className = 'check idle';
+  el.innerHTML =
+    '<div class="icon">·</div>' +
+    '<div class="body"><div class="name"></div><div class="detail"></div></div>' +
+    '<div class="val"></div>';
+  el.querySelector('.name').textContent = name;
+  document.getElementById(group).appendChild(el);
+  checks[id] = { el, group, name, state:'idle', detail:'', value:'', fix:'' };
+  return checks[id];
+}
+
+function setCheck(id, state, detail, value, fix){
+  const c = checks[id];
+  if(!c) return;
+  c.state = state; c.detail = detail || ''; c.value = value || ''; c.fix = fix || '';
+  c.el.className = 'check ' + state;
+  c.el.querySelector('.icon').textContent =
+    state === 'pass' ? '✓' : state === 'fail' ? '✕' : state === 'warn' ? '!' : state === 'busy' ? '⋯' : '·';
+  c.el.querySelector('.detail').textContent = c.detail;
+  c.el.querySelector('.val').textContent = c.value;
+  let fixEl = c.el.querySelector('.fix');
+  if(fix){
+    if(!fixEl){
+      fixEl = document.createElement('div');
+      fixEl.className = 'fix';
+      c.el.querySelector('.body').appendChild(fixEl);
+    }
+    fixEl.textContent = '';
+    const fixTitle = document.createElement('b');
+    fixTitle.textContent = 'ما العمل';
+    fixEl.appendChild(fixTitle);
+    fixEl.appendChild(document.createTextNode(fix));
+  } else if(fixEl){ fixEl.remove(); }
+  updateTallies();
+  refreshReport();
+}
+
+const groupTally = {
+  groupEnv:'tallyEnv', groupPerm:'tallyPerm', groupAudio:'tallyAudio',
+  groupStore:'tallyStore', groupAzure:'tallyAzure'
+};
+
+function updateTallies(){
+  Object.entries(groupTally).forEach(([g, t]) => {
+    const list = Object.values(checks).filter(c => c.group === g);
+    const done = list.filter(c => c.state !== 'idle' && c.state !== 'busy');
+    const bad = list.filter(c => c.state === 'fail').length;
+    const warn = list.filter(c => c.state === 'warn').length;
+    let txt = done.length + '/' + list.length;
+    if(bad) txt += ' · ' + bad + ' فشل';
+    else if(warn) txt += ' · ' + warn + ' تنبيه';
+    document.getElementById(t).textContent = txt;
+  });
+  updateVerdict();
+}
+
+function updateVerdict(){
+  const list = Object.values(checks);
+  const tested = list.filter(c => c.state === 'pass' || c.state === 'fail' || c.state === 'warn');
+  const fails = list.filter(c => c.state === 'fail');
+  const warns = list.filter(c => c.state === 'warn');
+  const v = document.getElementById('verdict');
+  const title = document.getElementById('verdictTitle');
+  const text = document.getElementById('verdictText');
+  if(!tested.length) return;
+  if(fails.length){
+    v.className = 'verdict bad';
+    title.textContent = fails.length + ' مشكلة تمنع التطبيق من العمل';
+    text.textContent = fails.map(c => c.name).join(' · ');
+  } else if(warns.length){
+    v.className = 'verdict warn';
+    title.textContent = 'يعمل، مع ' + warns.length + ' تنبيه';
+    text.textContent = warns.map(c => c.name).join(' · ');
+  } else {
+    v.className = 'verdict ok';
+    title.textContent = 'كل الفحوص المنفَّذة سليمة';
+    text.textContent = tested.length + ' فحصًا ناجحًا' + (errorLog.length ? ' — لكن السجلّ يحتوي ' + errorLog.length + ' رسالة' : '');
+  }
+}
+
+/* ============================================================
+   3. DEVICE PROFILE
+   ============================================================ */
+const ua = navigator.userAgent;
+const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+const isIOS = /iPad|iPhone|iPod/.test(ua) || isIPadOS;
+const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+const iosVersion = (() => {
+  const m = ua.match(/OS (\d+)[._](\d+)/);
+  return m ? Number(m[1]) + Number(m[2])/10 : null;
+})();
+
+/* ============================================================
+   4. BUILD THE CHECK LIST
+   ============================================================ */
+addCheck('groupEnv','device','الجهاز');
+addCheck('groupEnv','browser','المتصفح');
+addCheck('groupEnv','secure','اتصال آمن (HTTPS)');
+addCheck('groupEnv','online','الاتصال بالإنترنت');
+addCheck('groupEnv','privateMode','وضع التصفح الخاص');
+
+addCheck('groupPerm','micPerm','إذن الميكروفون');
+addCheck('groupPerm','micOpen','فتح الميكروفون فعليًا');
+addCheck('groupPerm','autoplay','تشغيل الصوت تلقائيًا');
+
+addCheck('groupAudio','getUserMedia','واجهة التقاط الصوت');
+addCheck('groupAudio','mediaRecorder','مسجّل الصوت');
+addCheck('groupAudio','mimeTypes','صيغ التسجيل المدعومة');
+addCheck('groupAudio','audioContext','معالج الصوت');
+addCheck('groupAudio','offlineCtx','تحويل الصوت إلى WAV');
+addCheck('groupAudio','speechRec','التعرّف على الكلام داخل المتصفح');
+
+addCheck('groupStore','localStore','حفظ الإعدادات');
+addCheck('groupStore','indexedDb','حفظ الملفات الصوتية');
+addCheck('groupStore','quota','المساحة المتاحة');
+
+addCheck('groupAzure','tokenEndpoint','خادم مفاتيح Azure');
+addCheck('groupAzure','sdkLoad','مكتبة Azure Speech');
+addCheck('groupAzure','ttsTest','نطق Sana');
+addCheck('groupAzure','sttTest','تحويل صوتك إلى نص');
+
+/* ============================================================
+   5. CONFIG — loaded from reading-app-config.js (shared with the
+      reading and dictation pages). Fallback only covers the case
+      where that file failed to load.
+   ============================================================ */
+const CONFIG = window.READING_APP_CONFIG || {
+  TOKEN_ENDPOINT:'',
+  REGION:'eastus',
+  VOICE:'ar-JO-SanaNeural',
+  SDK_URL:'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.46.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js'
+};
+
+/* ============================================================
+   6. THE CHECKS
+   ============================================================ */
+function checkEnvironment(){
+  let deviceName = 'غير معروف';
+  if(isIPadOS) deviceName = 'iPad (iPadOS 13+)';
+  else if(/iPad/.test(ua)) deviceName = 'iPad';
+  else if(/iPhone/.test(ua)) deviceName = 'iPhone';
+  else if(/Android/.test(ua)) deviceName = 'Android';
+  else if(/Macintosh/.test(ua)) deviceName = 'Mac';
+  else if(/Windows/.test(ua)) deviceName = 'Windows';
+  setCheck('device','pass', deviceName + (iosVersion ? ' · iOS ' + iosVersion : '') +
+    ' · شاشة ' + window.innerWidth + '×' + window.innerHeight, navigator.maxTouchPoints + ' لمسات');
+
+  let bName = 'غير معروف';
+  if(/CriOS/.test(ua)) bName = 'Chrome على iOS';
+  else if(/FxiOS/.test(ua)) bName = 'Firefox على iOS';
+  else if(/EdgiOS/.test(ua)) bName = 'Edge على iOS';
+  else if(isSafari) bName = 'Safari';
+  else if(/Chrome/.test(ua)) bName = 'Chrome';
+  else if(/Firefox/.test(ua)) bName = 'Firefox';
+
+  if(isIOS && !isSafari){
+    setCheck('browser','warn', bName + ' — على iOS كل المتصفحات تستخدم محرّك Safari، لكن بعض أذونات الوسائط تتصرّف بشكل مختلف.',
+      bName, 'إن تعطّل الميكروفون هنا، افتح الصفحة في Safari مباشرة.');
+  } else {
+    setCheck('browser','pass', bName, bName);
+  }
+
+  if(window.isSecureContext){
+    setCheck('secure','pass','الصفحة تعمل عبر HTTPS — الميكروفون مسموح.', location.protocol);
+  } else {
+    setCheck('secure','fail','الميكروفون والتسجيل لا يعملان إطلاقًا بدون HTTPS.', location.protocol,
+      'افتح الصفحة عبر رابط https:// وليس http:// أو ملف محلي. على iPad لا يوجد استثناء حتى لـ localhost.');
+  }
+
+  if(navigator.onLine){
+    setCheck('online','pass','متصل — Azure يحتاج الإنترنت للنطق والتعرّف.','online');
+  } else {
+    setCheck('online','fail','لا يوجد اتصال. صوت Sana والتعرّف على الكلام لن يعملا.','offline',
+      'تحقّق من الواي-فاي ثم أعد الفحص.');
+  }
+
+  let priv = false;
+  try {
+    localStorage.setItem('__t','1'); localStorage.removeItem('__t');
+  } catch(_){ priv = true; }
+  if(priv){
+    setCheck('privateMode','fail','التخزين معطّل — غالبًا التصفح الخاص. النصوص والتقدّم لن تُحفظ.','خاص',
+      'أغلق نافذة التصفح الخاص وافتح الصفحة في نافذة عادية.');
+  } else {
+    setCheck('privateMode','pass','تصفح عادي — الحفظ يعمل.','عادي');
+  }
+}
+
+function checkCapabilities(){
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    setCheck('getUserMedia','pass','متوفّرة.','مدعومة');
+  } else {
+    setCheck('getUserMedia','fail','المتصفح لا يوفّر التقاط الصوت — أو الصفحة ليست على HTTPS.','غير مدعومة',
+      window.isSecureContext ? 'حدّث المتصفح إلى أحدث إصدار.' : 'السبب الأرجح غياب HTTPS — أصلحه أولًا.');
+  }
+
+  if(window.MediaRecorder){
+    setCheck('mediaRecorder','pass','متوفّر.','مدعوم');
+    const candidates = ['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/wav'];
+    const supported = candidates.filter(t => {
+      try { return MediaRecorder.isTypeSupported(t); } catch(_){ return false; }
+    });
+    if(supported.length){
+      const onlyMp4 = supported.length === 1 && supported[0] === 'audio/mp4';
+      setCheck('mimeTypes', onlyMp4 ? 'warn' : 'pass',
+        supported.join('، '),
+        supported.length + ' صيغة',
+        onlyMp4 ? 'هذا طبيعي على iPad: الصيغة الوحيدة هي audio/mp4. تأكّد أن التطبيق يختار أول صيغة مدعومة ولا يفترض webm.' : '');
+    } else {
+      setCheck('mimeTypes','fail','لا توجد صيغة تسجيل مدعومة.','لا شيء',
+        'المتصفح قديم جدًا — حدّث نظام الجهاز.');
+    }
+  } else {
+    const oldIOS = isIOS && iosVersion && iosVersion < 14.3;
+    setCheck('mediaRecorder','fail','التسجيل غير مدعوم، فلن يعمل زر القراءة بالميكروفون.','غير مدعوم',
+      oldIOS ? 'إصدار iOS لديك ' + iosVersion + ' — التسجيل يحتاج iOS 14.3 أو أحدث. حدّث النظام.'
+             : 'حدّث المتصفح أو نظام الجهاز إلى أحدث إصدار.');
+    setCheck('mimeTypes','fail','لا يمكن فحص الصيغ بدون مسجّل صوت.','—');
+  }
+
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(AC){
+    let ctx;
+    try {
+      ctx = new AC();
+      const needsGesture = ctx.state === 'suspended';
+      setCheck('audioContext', needsGesture ? 'warn' : 'pass',
+        needsGesture
+          ? 'متوقّف مؤقتًا حتى أول لمسة — سلوك طبيعي على iPad.'
+          : 'يعمل.',
+        ctx.state,
+        needsGesture ? 'المس أي زر في الصفحة مرة واحدة لتفعيل الصوت. التطبيق يفعل ذلك تلقائيًا عند أول ضغطة.' : '');
+      ctx.close();
+    } catch(err){
+      setCheck('audioContext','fail','تعذّر إنشاء معالج الصوت: ' + err.message,'فشل');
+    }
+  } else {
+    setCheck('audioContext','fail','معالج الصوت غير مدعوم — لا يمكن تحويل التسجيل قبل إرساله.','غير مدعوم',
+      'حدّث المتصفح.');
+  }
+
+  if(window.OfflineAudioContext || window.webkitOfflineAudioContext){
+    setCheck('offlineCtx','pass','متوفّر — يُستخدم لتحويل التسجيل إلى WAV 16kHz.','مدعوم');
+  } else {
+    setCheck('offlineCtx','fail','غير متوفّر — لا يمكن تجهيز الصوت لإرساله إلى Azure.','غير مدعوم',
+      'حدّث المتصفح.');
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(SR){
+    setCheck('speechRec','pass','متوفّر (غير مستخدم — التطبيق يعتمد Azure).','مدعوم');
+  } else {
+    setCheck('speechRec', isIOS ? 'pass' : 'warn',
+      isIOS
+        ? 'غير متوفّر على iPad، وهذا لا يهم: التطبيق يستخدم Azure للتعرّف.'
+        : 'غير متوفّر. التطبيق يستخدم Azure بدلًا منه، فلا تأثير.',
+      'غير متوفّر');
+  }
+}
+
+function checkStorage(){
+  try {
+    const k = '__diag_' + Date.now();
+    localStorage.setItem(k, 'x');
+    const ok = localStorage.getItem(k) === 'x';
+    localStorage.removeItem(k);
+    const used = new Blob(Object.values(localStorage)).size;
+    setCheck('localStore', ok ? 'pass' : 'fail',
+      ok ? 'يعمل — النصوص والإعدادات تُحفظ.' : 'القراءة بعد الكتابة فشلت.',
+      Math.round(used/1024) + ' KB');
+  } catch(err){
+    setCheck('localStore','fail','معطّل: ' + err.name,'فشل',
+      'فعّل ملفات الكوكيز/التخزين: الإعدادات ← Safari ← أوقف «منع كل ملفات تعريف الارتباط».');
+  }
+
+  if(!window.indexedDB){
+    setCheck('indexedDb','fail','غير مدعوم — الصوت المحفوظ والتسجيلات لن تعمل.','غير مدعوم');
+    return Promise.resolve();
+  }
+  return new Promise(resolve => {
+    let settled = false;
+    const done = (state, detail, value, fix) => {
+      if(settled) return; settled = true;
+      setCheck('indexedDb', state, detail, value, fix);
+      resolve();
+    };
+    const timer = setTimeout(() => done('fail','لم يستجب خلال 5 ثوانٍ — قد يكون محجوبًا.','مهلة',
+      'أعد تشغيل المتصفح، وتأكّد أنك لست في التصفح الخاص.'), 5000);
+    try {
+      const req = indexedDB.open('__diag_db', 1);
+      req.onupgradeneeded = () => { try { req.result.createObjectStore('s'); } catch(_){} };
+      req.onsuccess = () => {
+        clearTimeout(timer);
+        try { req.result.close(); indexedDB.deleteDatabase('__diag_db'); } catch(_){}
+        done('pass','يعمل — الصوت المحفوظ يبقى على الجهاز.','مدعوم');
+      };
+      req.onerror = () => {
+        clearTimeout(timer);
+        done('fail','تعذّر الفتح: ' + (req.error && req.error.name),'فشل',
+          'على iPad، التصفح الخاص يعطّل هذه الميزة. جرّب نافذة عادية.');
+      };
+    } catch(err){
+      clearTimeout(timer);
+      done('fail','خطأ: ' + err.message,'فشل');
+    }
+  });
+}
+
+async function checkQuota(){
+  if(navigator.storage && navigator.storage.estimate){
+    try {
+      const est = await navigator.storage.estimate();
+      const usedMb = (est.usage||0)/1048576;
+      const quotaMb = (est.quota||0)/1048576;
+      const tight = quotaMb && quotaMb < 50;
+      setCheck('quota', tight ? 'warn' : 'pass',
+        'مستخدَم ' + usedMb.toFixed(1) + ' MB من ' + quotaMb.toFixed(0) + ' MB.',
+        quotaMb.toFixed(0) + ' MB',
+        tight ? 'المساحة صغيرة — قد يفشل حفظ صوت النصوص الطويلة. امسح بيانات المواقع القديمة.' : '');
+    } catch(err){
+      setCheck('quota','warn','تعذّر قياس المساحة: ' + err.message,'غير معروف');
+    }
+  } else {
+    setCheck('quota','warn','المتصفح لا يكشف المساحة (طبيعي على iPad).','غير متاح');
+  }
+}
+
+async function checkMicPermission(){
+  if(navigator.permissions && navigator.permissions.query){
+    try {
+      const p = await navigator.permissions.query({ name:'microphone' });
+      const map = {
+        granted:['pass','ممنوح — لن يُسأل مرة أخرى.',''],
+        prompt:['warn','سيُطلب عند أول استخدام للميكروفون.','اضغط «اختبر الميكروفون» ووافق على الطلب.'],
+        denied:['fail','مرفوض — كل أزرار القراءة بالصوت لن تعمل.',
+          isIOS ? 'الإعدادات ← Safari ← الميكروفون ← اسمح. أو المس أيقونة «AA» في شريط العنوان ← إعدادات الموقع.'
+                : 'اضغط أيقونة القفل في شريط العنوان ← الميكروفون ← اسمح، ثم أعد تحميل الصفحة.']
+      };
+      const [state, detail, fix] = map[p.state] || ['warn','حالة غير معروفة: ' + p.state,''];
+      setCheck('micPerm', state, detail, p.state, fix);
+      return;
+    } catch(_){ /* fall through */ }
+  }
+  setCheck('micPerm','warn',
+    isIOS
+      ? 'iPad لا يكشف حالة الإذن مسبقًا — الطريقة الوحيدة للتأكّد هي اختبار الميكروفون.'
+      : 'المتصفح لا يكشف حالة الإذن.',
+    'غير معلوم',
+    'اضغط «اختبر الميكروفون» للتأكّد عمليًا.');
+}
+
+async function testMic(){
+  setCheck('micOpen','busy','جارٍ طلب الإذن…','—');
+  setCheck('autoplay','busy','جارٍ الفحص…','—');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    setCheck('micOpen','fail','واجهة التقاط الصوت غير متوفّرة.','—');
+    return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio:{ channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true }
+    });
+  } catch(err){
+    const fixes = {
+      NotAllowedError: isIOS
+        ? 'رُفض الإذن. على iPad: الإعدادات ← Safari ← الميكروفون ← اسمح، ثم أعد تحميل الصفحة. إن لم يظهر الموقع هناك، امسح بيانات Safari وأعد المحاولة.'
+        : 'رُفض الإذن. اضغط أيقونة القفل في شريط العنوان ← الميكروفون ← اسمح.',
+      NotFoundError:'لا يوجد ميكروفون. على iPad تأكّد أنه غير محجوب بغطاء، وأن سماعة خارجية ليست موصولة ومعطّلة.',
+      NotReadableError:'الميكروفون مشغول بتطبيق آخر. أغلق تطبيقات المكالمات والتسجيل ثم أعد المحاولة.',
+      OverconstrainedError:'إعدادات الالتقاط غير مدعومة على هذا الجهاز.',
+      SecurityError:'محجوب لأسباب أمنية — تأكّد من HTTPS.'
+    };
+    setCheck('micOpen','fail', err.name + ': ' + (err.message||''), 'فشل',
+      fixes[err.name] || 'أعد تحميل الصفحة وحاول مجددًا.');
+    setCheck('autoplay','idle','—','');
+    pushLog('error','فشل فتح الميكروفون: ' + err.name + ' — ' + err.message,'testMic');
+    return;
+  }
+
+  // Measure input level for 1.5s so a muted/dead mic is caught too.
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let peak = 0;
+  if(AC){
+    try {
+      const ctx = new AC();
+      await ctx.resume().catch(()=>{});
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      src.connect(analyser);
+      const data = new Uint8Array(analyser.fftSize);
+      const started = Date.now();
+      setCheck('micOpen','busy','تكلّم الآن… أقيس مستوى الصوت لثانية ونصف.','—');
+      await new Promise(res => {
+        const tick = () => {
+          analyser.getByteTimeDomainData(data);
+          let sum = 0;
+          for(let i=0;i<data.length;i++){ const x=(data[i]-128)/128; sum += x*x; }
+          peak = Math.max(peak, Math.sqrt(sum/data.length));
+          if(Date.now() - started > 1500) return res();
+          requestAnimationFrame(tick);
+        };
+        tick();
+      });
+      src.disconnect(); analyser.disconnect(); ctx.close();
+    } catch(err){
+      pushLog('warn','تعذّر قياس مستوى الميكروفون: ' + err.message,'testMic');
+    }
+  }
+  stream.getTracks().forEach(t => t.stop());
+
+  const pct = Math.round(peak * 100);
+  if(peak > 0.02){
+    setCheck('micOpen','pass','الميكروفون يعمل ويلتقط صوتًا واضحًا.','مستوى ' + pct + '%');
+  } else if(peak > 0.003){
+    setCheck('micOpen','warn','الميكروفون يعمل لكن الصوت ضعيف جدًا.','مستوى ' + pct + '%',
+      'قرّب الجهاز من المتحدّث، وارفع صوتك. صوت منخفض هو أشيع سبب لعدم تعرّف Azure على الكلمات.');
+  } else {
+    setCheck('micOpen','warn','فُتح الميكروفون لكن لم يصل أي صوت.','صامت',
+      'لم أسمع شيئًا — تأكّد أنك تكلّمت أثناء الفحص، وأن الميكروفون غير مكتوم أو محجوب بغطاء iPad.');
+  }
+
+  await testAutoplay();
+}
+
+async function testAutoplay(){
+  try {
+    const a = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
+    a.volume = 0.01;
+    await a.play();
+    a.pause();
+    setCheck('autoplay','pass','الصوت يعمل — Sana ستُسمع.','مسموح');
+  } catch(err){
+    setCheck('autoplay','warn','المتصفح يمنع تشغيل الصوت قبل لمسة المستخدم.','محجوب',
+      'هذا طبيعي على iPad. المس أي زر مرة واحدة ثم أعد الاختبار. التطبيق يفتح الصوت تلقائيًا عند أول ضغطة.');
+  }
+}
+
+
+
+async function checkToken(){
+  setCheck('tokenEndpoint','busy','جارٍ الاتصال…','—');
+  const started = Date.now();
+  try {
+    const t = await window.sanaSpeech.getToken(true);
+    const ms = Date.now() - started;
+    setCheck('tokenEndpoint','pass',
+      'المنطقة: ' + (t.region || CONFIG.REGION) + ' · الصوت: ' + (t.voice || CONFIG.VOICE),
+      ms + ' ms');
+  } catch(err){
+    setCheck('tokenEndpoint','fail', window.sanaSpeech.errorMessage(err), 'فشل',
+      'بدون هذا الخادم لا يعمل النطق ولا التعرّف. تحقّق أن Azure Function تعمل، وأن CORS يسمح لنطاق هذه الصفحة، وأن التفويض Anonymous.');
+    pushLog('error','فشل خادم المفاتيح: ' + window.sanaSpeech.errorMessage(err),'checkToken');
+  }
+}
+
+async function checkSdk(){
+  setCheck('sdkLoad','busy','جارٍ التحميل…','—');
+  if(window.SpeechSDK){
+    setCheck('sdkLoad','pass','محمّلة مسبقًا.','جاهزة');
+    return;
+  }
+  const started = Date.now();
+  try {
+    await window.sanaSpeech.loadSdk();
+    setCheck('sdkLoad','pass','تم التحميل.',(Date.now()-started)+' ms');
+  } catch(err){
+    setCheck('sdkLoad','fail',window.sanaSpeech.errorMessage(err),'فشل',
+      'تحقّق من الإنترنت، ومن أن جدار الحماية أو فلتر الشبكة لا يحجب cdn.jsdelivr.net. تقييم النطق لن يعمل بدونها.');
+    pushLog('error','فشل تحميل Azure SDK: '+window.sanaSpeech.errorMessage(err),'checkSdk');
+  }
+}
+
+async function testTts(){
+  setCheck('ttsTest','busy','جارٍ التوليد…','—');
+  try {
+    const t = await window.sanaSpeech.getToken(false);
+    const region = (t.region || CONFIG.REGION || 'eastus').trim().toLowerCase();
+    const voice = t.voice || CONFIG.VOICE || 'ar-JO-SanaNeural';
+    const ssml = '<?xml version="1.0" encoding="utf-8"?><speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ar-JO"><voice name="' + voice + '">مرحبًا، هذا اختبار للصوت.</voice></speak>';
+    const started = Date.now();
+    const res = await fetch('https://' + region + '.tts.speech.microsoft.com/cognitiveservices/v1', {
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer ' + t.token,
+        'Content-Type':'application/ssml+xml',
+        'X-Microsoft-OutputFormat':'riff-24khz-16bit-mono-pcm'
+      },
+      body: ssml,
+      cache:'no-store'
+    });
+    if(!res.ok){
+      const hints = {
+        400:'الطلب مرفوض — راجع اسم الصوت.',
+        401:'التوكن غير صالح أو المنطقة لا تطابق المفتاح.',
+        403:'الخدمة رفضت الطلب — راجع اشتراك Azure.',
+        404:'عنوان الخدمة غير صحيح — راجع اسم المنطقة.',
+        429:'تجاوزت الحد المسموح مؤقتًا — انتظر دقيقة.'
+      };
+      throw new Error('Azure ردّ بالرمز ' + res.status + (hints[res.status] ? ' — ' + hints[res.status] : ''));
+    }
+    const buf = await res.arrayBuffer();
+    if(!buf.byteLength) throw new Error('لم يصل أي صوت.');
+    const ms = Date.now() - started;
+    const url = URL.createObjectURL(new Blob([buf], { type:'audio/wav' }));
+    const audio = new Audio(url);
+    try {
+      await audio.play();
+      setCheck('ttsTest','pass','سمعت الجملة؟ إذا نعم فالنطق سليم تمامًا.',
+        Math.round(buf.byteLength/1024) + ' KB · ' + ms + ' ms');
+    } catch(_){
+      setCheck('ttsTest','warn','وصل الصوت لكن المتصفح منع تشغيله.',
+        Math.round(buf.byteLength/1024) + ' KB',
+        'المس أي زر في الصفحة ثم اضغط «اختبر صوت Sana» مجددًا. هذا قيد iPad المعتاد وليس خطأ في الخدمة.');
+    }
+    audio.onended = () => URL.revokeObjectURL(url);
+  } catch(err){
+    setCheck('ttsTest','fail', err.message, 'فشل',
+      'إن كان خادم المفاتيح سليمًا أعلاه، فالمشكلة في اشتراك Azure أو المنطقة.');
+    pushLog('error','فشل اختبار النطق: ' + err.message,'testTts');
+  }
+}
+
+async function testStt(){
+  setCheck('sttTest','busy','سيُسجَّل صوتك 4 ثوانٍ…','—');
+  if(!window.MediaRecorder || !navigator.mediaDevices){
+    setCheck('sttTest','fail','التسجيل غير مدعوم على هذا الجهاز.','—');
+    return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio:{ channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+  } catch(err){
+    setCheck('sttTest','fail','تعذّر فتح الميكروفون: ' + err.name,'—',
+      'أصلح إذن الميكروفون أولًا ثم أعد المحاولة.');
+    return;
+  }
+
+  const mimes = ['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+  const mime = mimes.find(t => { try { return MediaRecorder.isTypeSupported(t); } catch(_){ return false; } }) || '';
+  const recorder = mime ? new MediaRecorder(stream, { mimeType:mime }) : new MediaRecorder(stream);
+  const chunks = [];
+  recorder.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+
+  const finished = new Promise(res => { recorder.onstop = res; });
+  recorder.start();
+  setCheck('sttTest','busy','اقرأ الآن بصوت واضح: «مرحبا كيف حالك»','تسجيل…');
+  await new Promise(r => setTimeout(r, 4000));
+  try { if(recorder.state !== 'inactive') recorder.stop(); } catch(_){}
+  await finished;
+  stream.getTracks().forEach(t => t.stop());
+
+  const blob = new Blob(chunks, { type: recorder.mimeType || mime || 'audio/webm' });
+  if(blob.size < 1000){
+    setCheck('sttTest','fail','التسجيل فارغ (' + blob.size + ' بايت).','فارغ',
+      'لم يلتقط الميكروفون شيئًا. راجع فحص «فتح الميكروفون فعليًا» أعلاه.');
+    return;
+  }
+
+  setCheck('sttTest','busy','جارٍ تحويل الصوت وإرساله…','—');
+  let wav;
+  try {
+    wav = await toWav16k(blob);
+  } catch(err){
+    setCheck('sttTest','fail','فشل تحويل الصوت: ' + err.message,'فشل',
+      'صيغة التسجيل ' + (recorder.mimeType||mime) + ' لم يستطع المتصفح فكّها. هذه مشكلة معروفة على بعض إصدارات iPad القديمة.');
+    pushLog('error','فشل تحويل WAV: ' + err.message,'testStt');
+    return;
+  }
+
+  try {
+    const t = await window.sanaSpeech.getToken(false);
+    const region = (t.region || CONFIG.REGION || 'eastus').trim().toLowerCase();
+    const url = 'https://' + region + '.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=ar-SA&format=detailed';
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{
+        'Authorization':'Bearer ' + t.token,
+        'Content-Type':'audio/wav; codecs=audio/pcm; samplerate=16000',
+        'Accept':'application/json'
+      },
+      body: wav,
+      cache:'no-store'
+    });
+    const body = await res.text();
+    if(!res.ok) throw new Error('Azure ردّ بالرمز ' + res.status + ' — ' + body.slice(0,120));
+    const data = JSON.parse(body || '{}');
+    const status = data.RecognitionStatus || 'غير معروف';
+    const text = (data.DisplayText || (data.NBest && data.NBest[0] && data.NBest[0].Display) || '').trim();
+    const sizeKb = Math.round(wav.size/1024);
+
+    if(status === 'Success' && text){
+      setCheck('sttTest','pass','سمع Azure: «' + text + '»', sizeKb + ' KB · ' + status);
+    } else if(status === 'InitialSilenceTimeout'){
+      setCheck('sttTest','fail','لم يسمع Azure أي كلام في بداية التسجيل.', sizeKb + ' KB · ' + status,
+        'ابدأ الكلام فورًا بعد ظهور رسالة التسجيل، لا تنتظر. في التطبيق نفسه، هذا سبب شائع لعدم التعرّف.');
+    } else if(status === 'NoMatch'){
+      setCheck('sttTest','fail','وصل الصوت لكن Azure لم يتعرّف على كلام عربي فيه.', sizeKb + ' KB · ' + status,
+        'ارفع صوتك وقرّب الميكروفون. إن تكرّر رغم صوت واضح، فالتسجيل غالبًا مشوّه — راجع صيغة التسجيل أعلاه.');
+    } else {
+      setCheck('sttTest','warn','الحالة: ' + status + (text ? ' · النص: ' + text : ' · بدون نص'), sizeKb + ' KB');
+    }
+  } catch(err){
+    setCheck('sttTest','fail', err.message, 'فشل',
+      'إن كان خادم المفاتيح سليمًا، راجع صلاحيات الاشتراك للتعرّف على الكلام.');
+    pushLog('error','فشل اختبار التعرّف: ' + err.message,'testStt');
+  }
+}
+
+async function toWav16k(blob){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) throw new Error('معالج الصوت غير مدعوم');
+  const ctx = new AC();
+  try {
+    await ctx.resume().catch(()=>{});
+    const buf = await blob.arrayBuffer();
+    const decoded = await ctx.decodeAudioData(buf.slice(0));
+    const rate = 16000;
+    const frames = Math.max(1, Math.ceil(decoded.duration * rate));
+    const offline = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, frames, rate);
+    const src = offline.createBufferSource();
+    src.buffer = decoded; src.connect(offline.destination); src.start(0);
+    const rendered = await offline.startRendering();
+    const ch = rendered.getChannelData(0);
+    let peak = 0;
+    for(let i=0;i<ch.length;i++){ const v = Math.abs(ch[i]); if(v>peak) peak = v; }
+    const gain = peak > 0.01 ? Math.min(3, 0.9/peak) : 1;
+    const len = ch.length * 2;
+    const out = new ArrayBuffer(44 + len);
+    const dv = new DataView(out);
+    const w = (o, s) => { for(let i=0;i<s.length;i++) dv.setUint8(o+i, s.charCodeAt(i)); };
+    w(0,'RIFF'); dv.setUint32(4, 36+len, true); w(8,'WAVE'); w(12,'fmt ');
+    dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+    dv.setUint32(24,rate,true); dv.setUint32(28,rate*2,true); dv.setUint16(32,2,true);
+    dv.setUint16(34,16,true); w(36,'data'); dv.setUint32(40,len,true);
+    let off = 44;
+    for(let i=0;i<ch.length;i++){
+      const x = Math.max(-1, Math.min(1, ch[i]*gain));
+      dv.setInt16(off, x<0 ? x*0x8000 : x*0x7fff, true);
+      off += 2;
+    }
+    return new Blob([out], { type:'audio/wav' });
+  } finally {
+    try { await ctx.close(); } catch(_){}
+  }
+}
+
+/* ============================================================
+   7. REPORT
+   ============================================================ */
+function refreshReport(){
+  const lines = [];
+  lines.push('READING APP DIAGNOSTICS');
+  lines.push('Generated: ' + new Date().toISOString());
+  lines.push('URL: ' + location.href);
+  lines.push('UA: ' + ua);
+  lines.push('Platform: ' + navigator.platform + ' | touchPoints: ' + navigator.maxTouchPoints);
+  lines.push('iPadOS-masquerading: ' + isIPadOS + ' | iOS: ' + isIOS + ' | Safari: ' + isSafari + ' | iOS ver: ' + (iosVersion||'n/a'));
+  lines.push('Viewport: ' + window.innerWidth + 'x' + window.innerHeight + ' @' + (window.devicePixelRatio||1) + 'x');
+  lines.push('');
+  lines.push('--- CHECKS ---');
+  const order = ['groupEnv','groupPerm','groupAudio','groupStore','groupAzure'];
+  const titles = { groupEnv:'ENVIRONMENT', groupPerm:'PERMISSIONS', groupAudio:'AUDIO', groupStore:'STORAGE', groupAzure:'AZURE' };
+  order.forEach(g => {
+    lines.push('[' + titles[g] + ']');
+    Object.values(checks).filter(c => c.group === g).forEach(c => {
+      const mark = c.state==='pass'?'PASS':c.state==='fail'?'FAIL':c.state==='warn'?'WARN':c.state==='busy'?'....':'skip';
+      lines.push('  ' + mark + '  ' + c.name + (c.value ? '  [' + c.value + ']' : ''));
+      if(c.detail) lines.push('        ' + c.detail);
+      if(c.fix)    lines.push('        FIX: ' + c.fix);
+    });
+    lines.push('');
+  });
+  lines.push('--- ERROR LOG (' + errorLog.length + ') ---');
+  if(!errorLog.length) lines.push('  (none)');
+  errorLog.forEach(e => {
+    lines.push('  [' + e.level.toUpperCase() + '] ' + e.at + ' ' + e.message + (e.where ? ' @ ' + e.where : ''));
+  });
+  document.getElementById('report').value = lines.join('\n');
+}
+
+/* ============================================================
+   8. WIRING
+   ============================================================ */
+async function runAll(){
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true; btn.textContent = 'جارٍ الفحص…';
+  checkEnvironment();
+  checkCapabilities();
+  await checkMicPermission();
+  await checkStorage();
+  await checkQuota();
+  await checkToken();
+  await checkSdk();
+  btn.disabled = false; btn.textContent = 'أعد الفحص';
+  updateVerdict();
+}
+
+document.getElementById('runBtn').addEventListener('click', runAll);
+document.getElementById('micBtn').addEventListener('click', async e => {
+  e.target.disabled = true;
+  await testMic();
+  await checkMicPermission();
+  e.target.disabled = false;
+});
+document.getElementById('ttsBtn').addEventListener('click', async e => {
+  e.target.disabled = true; await testTts(); e.target.disabled = false;
+});
+document.getElementById('sttBtn').addEventListener('click', async e => {
+  e.target.disabled = true; await testStt(); e.target.disabled = false;
+});
+document.getElementById('copyBtn').addEventListener('click', async e => {
+  const text = document.getElementById('report').value;
+  try {
+    await navigator.clipboard.writeText(text);
+    e.target.textContent = 'نُسخ ✓';
+  } catch(_){
+    const ta = document.getElementById('report');
+    ta.removeAttribute('readonly'); ta.select();
+    try { document.execCommand('copy'); e.target.textContent = 'نُسخ ✓'; }
+    catch(__){ e.target.textContent = 'حدّد النص ثم انسخه'; }
+    ta.setAttribute('readonly','');
+  }
+  setTimeout(() => { e.target.textContent = 'انسخ التقرير'; }, 2200);
+});
+
+refreshReport();
+runAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<!--
+  ============================================================
+  مقطع التقاط الأخطاء — ضعه في reading_app.html
+  ============================================================
+  أين: مباشرة بعد وسم <head> مباشرة، قبل أي كود JavaScript أو CSS آخر.
+       يجب أن يكون الأول حتى يلتقط الأخطاء التي تحدث أثناء التحميل.
+
+  ماذا يفعل:
+  - يسجّل كل خطأ JavaScript، ووعد مرفوض، وconsole.error/warn، وفشل تحميل ملف.
+  - يحفظها في localStorage فتبقى بعد إعادة تحميل الصفحة (مهم على iPad
+    حيث لا يمكنك فتح أدوات المطوّر).
+  - يُظهر زرًا أحمر صغيرًا أسفل يسار الشاشة فور وقوع أول خطأ، يفتح
+    قائمة الأخطاء بضغطة — بلا حاجة لتوصيل iPad بحاسوب.
+  - يمرّر كل ما التقطه إلى صفحة الفحص عبر localStorage.
+  ============================================================
+-->
+<script src="reading-error-capture.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport"/>
+<title>مدرّب القراءة العربية — Sana Neural</title>
+<link href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;📖&lt;/text&gt;&lt;/svg&gt;" rel="icon"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&amp;family=Noto+Naskh+Arabic:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --paper:#fbf6e9;--ink:#2f3437;--rule:#cfe0e8;--margin:#e2725b;
+    --ok:#2f8f5b;--ok-soft:#dff0e3;--live:#e0a11b;
+    --shadow:0 18px 40px -18px rgba(47,52,55,.45);
+    --font-read:"Noto Naskh Arabic",serif;
+    --font-ui:"Baloo Bhaijaan 2","Noto Naskh Arabic",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--font-ui);
+    background:radial-gradient(circle at 15% 10%,#fff7e2 0%,transparent 55%),
+               radial-gradient(circle at 85% 90%,#eaf3f6 0%,transparent 55%),#efe7d4;
+    color:var(--ink);min-height:100vh;padding:12px 12px 300px}
+  .wrap{max-width:760px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  h1{font-size:1.05rem;margin:0;font-weight:800}
+  h1 span{color:var(--margin)}
+  .stats{display:flex;gap:6px}
+  .pill{background:#fff;border:2px solid #e6dcc6;border-radius:999px;padding:4px 10px;
+    font-size:.8rem;font-weight:700;box-shadow:0 2px 0 #e6dcc6;white-space:nowrap}
+  .card{background:var(--paper);border-radius:22px;border:1px solid #e6dcc6;box-shadow:var(--shadow);
+    padding:18px;text-align:center;position:relative;overflow:hidden}
+  .counter{font-size:.85rem;color:#8b9096;font-weight:700}
+  .ghostw{font-family:var(--font-read);font-size:1.25rem;color:#bfb69f;min-height:1.6em;
+    display:flex;justify-content:center;gap:14px;align-items:center}
+  .bigword{font-family:var(--font-read);font-size:clamp(3rem,17vw,6rem);font-weight:700;
+    line-height:1.5;padding:6px 4px 10px;letter-spacing:.02em;transition:transform .2s}
+  .bigword.ok{color:var(--ok)}
+  .bigword.pop{animation:pop .45s}
+  @keyframes pop{40%{transform:scale(1.18) rotate(-2deg)}}
+  .bigword.miss{animation:shake .35s}
+  @keyframes shake{25%{transform:translateX(10px)}75%{transform:translateX(-10px)}}
+  .sheet{position:relative;background:var(--paper);border-radius:18px;padding:24px 20px;
+    box-shadow:var(--shadow);border:1px solid #e6dcc6;
+    background-image:repeating-linear-gradient(to bottom,transparent 0 61px,var(--rule) 61px 62px);overflow:hidden}
+  .sheet::before{content:"";position:absolute;top:0;bottom:0;right:46px;width:2px;background:var(--margin);opacity:.5}
+  #text{font-family:var(--font-read);font-size:1.9rem;line-height:1.95;text-align:justify}
+  .w{display:inline-block;padding:2px 6px;margin:0 1px;border-radius:10px;transition:all .18s;position:relative;cursor:pointer}
+  .w.done{color:var(--ok);background:var(--ok-soft)}
+  .w.now{background:#fff3cf;box-shadow:0 0 0 3px #f6d97a inset}
+  .w.rec{border-bottom:3px solid #5aa9d6}
+  .w.spk{background:#d7ecfa;box-shadow:0 0 0 3px #7cc0e8 inset}
+  .bar{height:12px;background:#e6dcc6;border-radius:999px;margin:14px 0 4px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f0b429,#2f8f5b);transition:width .3s}
+  .heard{margin-top:8px;min-height:24px;font-size:.88rem;color:#7b8085;text-align:center}
+  .heard b{color:var(--live)}
+  small.note{display:block;text-align:center;color:#8b9096;font-size:.72rem;margin-top:6px}
+  .controls{position:fixed;bottom:0;right:0;left:0;padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top,#efe7d4 74%,rgba(239,231,212,0))}
+  .row{display:flex;gap:7px;max-width:760px;margin:0 auto}
+  .row+.row{margin-top:7px}
+  button{font-family:var(--font-ui);font-weight:700;font-size:.98rem;border:2px solid var(--ink);
+    border-radius:14px;background:#fff;color:var(--ink);padding:11px 8px;cursor:pointer;flex:1;
+    box-shadow:0 4px 0 var(--ink);transition:transform .1s,box-shadow .1s;touch-action:manipulation}
+  button:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+  button.mic{background:#2f8f5b;color:#fff;border-color:#1e5c3b;box-shadow:0 4px 0 #1e5c3b;flex:2}
+  button.mic.on{background:#e2725b;border-color:#a8442f;box-shadow:0 4px 0 #a8442f;animation:glow 1.2s infinite}
+  button.hold{background:#5aa9d6;color:#fff;border-color:#2d6a8f;box-shadow:0 4px 0 #2d6a8f;flex:2}
+  button.read{background:#f0b429;border-color:#9a7413;box-shadow:0 4px 0 #9a7413;flex:2}
+  @keyframes glow{50%{filter:brightness(1.15)}}
+  button.ghost{background:transparent;border-style:dashed;box-shadow:none;font-size:.8rem;padding:7px}
+  button.ghost:active{transform:none}
+  dialog{border:none;border-radius:18px;padding:18px;max-width:92vw;width:560px;
+    box-shadow:var(--shadow);background:var(--paper);font-family:var(--font-ui)}
+  dialog::backdrop{background:rgba(47,52,55,.5)}
+  textarea{width:100%;height:170px;font-family:var(--font-read);font-size:1.15rem;
+    border:2px solid #d9cdb2;border-radius:12px;padding:10px;background:#fff}
+  #diag{font-size:.8rem;line-height:1.7;background:#fff;border-radius:12px;padding:10px;border:2px solid #e6dcc6}
+  #diag div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed #eee;padding:3px 0}
+  .win{position:fixed;inset:0;display:none;place-items:center;background:rgba(47,52,55,.75);z-index:9;text-align:center;color:#fff;padding:20px}
+  .win.show{display:grid}
+  .win h2{font-size:2rem;margin:.2em 0}
+  .confetti{position:fixed;top:-20px;width:10px;height:16px;z-index:10;pointer-events:none;border-radius:2px}
+  .hide{display:none}
+  .banner{background:#ffe9e2;border:2px solid #e2725b;color:#8c3a26;border-radius:14px;
+    padding:10px 12px;font-size:.85rem;line-height:1.6;margin-bottom:10px}
+  .set label{display:block;font-size:.85rem;font-weight:700;margin:12px 0 4px}
+  .set select,.set input[type=range]{width:100%;font-family:var(--font-ui);font-size:1rem;
+    padding:8px;border:2px solid #d9cdb2;border-radius:10px;background:#fff}
+  .set .chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:700;font-size:.9rem}
+  .mistakes{margin:10px 0 0;background:#fff3cf;border:2px solid #f0b429;border-radius:14px;padding:10px;display:none}
+  .mistakes.show{display:block}.mistakes-title{font-weight:800;margin-bottom:6px}.mistake-list{display:flex;gap:6px;flex-wrap:wrap}
+  .mistake-chip{border:2px solid #d9cdb2;background:#fff;border-radius:999px;padding:4px 9px;font:700 .82rem var(--font-ui);cursor:pointer}
+  .result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.result-box{background:#fbf6e9;border-radius:12px;padding:8px}.result-box b{font-size:1.2rem}.result-box span{display:block;font-size:.7rem;color:#7b8085}
+  @media(max-width:700px){body{padding-bottom:320px}}
+
+
+  .text-manager{display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 14px}
+  .text-manager .inline{display:flex;gap:8px;flex-wrap:wrap}
+  .text-manager select,.text-manager input{flex:1;min-width:180px}
+  .saved-count{font-size:.76rem;color:#7b8085;text-align:center}
+
+
+  .top-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:8px 0 10px}
+  .top-actions button{box-shadow:none;padding:8px;font-size:.82rem;border-color:#d9cdb2}
+  .text-meta{background:#fff;border:1px solid #e6dcc6;border-radius:12px;padding:8px 10px;font-size:.75rem;color:#7b8085;display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:7px}
+  .progress-card{background:#fff;border:1px solid #e6dcc6;border-radius:14px;padding:10px;margin-top:10px}
+  .progress-card h4{margin:0 0 8px;font-size:.9rem}
+  .progress-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .prog-box{background:#fbf6e9;border-radius:10px;padding:7px;text-align:center}
+  .prog-box b{display:block;font-size:1rem}.prog-box span{font-size:.68rem;color:#8b9096}
+  .history-list{display:grid;gap:6px;margin-top:8px;max-height:220px;overflow:auto}
+  .history-item{display:flex;justify-content:space-between;gap:8px;padding:7px 9px;border:1px dashed #d9cdb2;border-radius:10px;font-size:.74rem;background:#fffaf0}
+  .history-item b{font-size:.8rem}
+  .mode-strip{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;justify-content:center}
+  .mode-strip button{box-shadow:none;font-size:.78rem;padding:7px 10px;border-color:#d9cdb2}
+  .mode-strip button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .pause-bar{display:flex;gap:6px;justify-content:center;margin:7px 0}.pause-bar button{box-shadow:none;font-size:.78rem;padding:7px 9px;border-color:#d9cdb2}
+  @media(max-width:560px){.top-actions{grid-template-columns:1fr 1fr 1fr}.progress-grid{grid-template-columns:repeat(2,1fr)}}
+
+</style>
+<script src="sana-common.js"></script>
+<script src="reading-app-config.js"></script>
+<style id="app-css">
+/* ============================================================
+   لوحة المتابعة (v9) وشريط الأدوات (v10) — القيم النهائية بعد
+   الدمج، بدون طبقات متعددة تتنافس عبر !important.
+   ============================================================ */
+:root{--kid-blue:#67b8e9;--kid-green:#61c391;--kid-yellow:#ffd568;--kid-coral:#ff8b78;--kid-ink:#253844;--kid-soft:#f4fbff;--kid-line:#d8e8f0}
+
+.v9-dashboard{max-width:860px;margin:12px auto;padding:0;background:transparent;border:0;border-radius:18px;box-shadow:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.v9-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;flex:1;min-width:280px}
+.v9-stat{background:#fff;border:2px solid var(--kid-line);border-radius:18px;padding:8px;text-align:center;box-shadow:0 5px 0 #e6f1f6}
+.v9-stat b{display:block;font-size:1.05rem}
+.v9-stat span{font-size:.72rem;color:#7b8085}
+.v9-actions{display:flex;gap:7px;margin-top:0;width:auto}
+.v9-actions button{flex:1;padding:9px;border:2px solid #cfe4ee;border-radius:16px;background:#fff;font-weight:800;box-shadow:0 4px 0 #cfe4ee}
+.v9-panel{background:#fff;border:2px solid #e6dcc6;border-radius:14px;padding:10px;margin-top:8px;font-family:var(--font-ui)}
+.v9-panel h3{margin:0 0 6px;font-size:.95rem}
+.v9-chip{display:inline-block;padding:5px 8px;margin:3px;border-radius:999px;background:#fff3cf;border:1px solid #f0b429;font-family:var(--font-read)}
+.v9-hidden{display:none!important}
+@media (max-width:600px){.v9-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.v9-dashboard{display:block}.v9-actions{margin-top:9px}}
+
+.v10-tools{max-width:860px;margin:12px auto;padding:12px;background:#fff;border:2px solid var(--kid-line);border-radius:24px;box-shadow:0 10px 24px rgba(40,75,95,.08)}
+.v10-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.v10-btn{padding:11px;border:2px solid #cfe4ee;border-radius:17px;background:#fff;font-family:inherit;font-weight:800;box-shadow:0 4px 0 #cfe4ee}
+.v10-btn.act{background:#4f9fcb;color:#fff;border-color:#3f81a5;box-shadow:0 4px 0 #3f81a5}
+.v10-panel{margin-top:8px;background:#fff;border:2px solid #e6dcc6;border-radius:14px;padding:10px}
+.v10-panel h3{margin:0 0 8px;font-size:.95rem}
+.v10-row{display:flex;gap:7px;flex-wrap:wrap}
+.v10-chip{display:inline-block;padding:5px 8px;margin:3px;border-radius:999px;background:#fff3cf;border:1px solid #f0b429;font-family:var(--font-read)}
+.v10-meter{height:10px;background:#e6dcc6;border-radius:999px;overflow:hidden}
+.v10-meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#f0b429,#2f8f5b)}
+.v10-small{font-size:.75rem;color:#7b8085}
+.v10-voice-card{border-color:#d9eaf1;border-radius:20px;background:#fafdff}
+.v10-voice-btn{border-color:#cfe4ee;border-radius:15px}
+.v10-voice-btn.primary{background:#4f9fcb;border-color:#3f81a5}
+@media(max-width:600px){.v10-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.v10-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ============================================================
+   طبقة الألوان "الصديقة للطفل" — تُغيّر خلفية الصفحة وألوان
+   البطاقة الأساسية والأزرار المعرّفة أعلاه في الأنماط الأساسية.
+   تحتاج !important فقط حيث تُغلب أنماط سطرية (style="...") مضمّنة
+   في العناصر نفسها.
+   ============================================================ */
+body{background:linear-gradient(180deg,#edf8ff 0,#fffaf1 62%,#f3fff8 100%);color:var(--kid-ink)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 10% 4%,rgba(255,214,104,.3),transparent 24%),radial-gradient(circle at 92% 10%,rgba(103,184,233,.22),transparent 26%),radial-gradient(circle at 85% 90%,rgba(97,195,145,.18),transparent 25%)}
+body>div:first-of-type{max-width:860px!important;margin:0 auto 10px!important;padding:2px}
+body>div:first-of-type a{border:0!important;background:#fff!important;color:#31576c!important;box-shadow:0 7px 0 #c9e2ee!important;border-radius:18px!important;padding:12px!important}
+#v8ReadSection .wrap{max-width:860px}
+.card{background:#fffdf8;border:3px solid #e7e0cf;border-radius:30px;box-shadow:0 18px 36px rgba(40,75,95,.12);padding:24px}
+.bigword{font-size:clamp(3.2rem,10vw,6rem);line-height:1.15;margin:.1em 0}
+.counter{font-size:1rem;color:#71838d}
+.heard{background:#eef8ff;border:2px solid #cfe7f5;border-radius:16px;padding:10px}
+.note{display:block;color:#73848d;line-height:1.6}
+.text-manager{background:#fff;border:2px solid var(--kid-line);border-radius:22px;padding:10px}
+.top-actions{gap:8px}
+.top-actions button,.text-manager button{border-color:#cfe4ee;border-radius:15px;box-shadow:0 3px 0 #cfe4ee}
+.mode-strip button{border-color:#cfe4ee!important;border-radius:15px!important}
+.mode-strip button.active{background:#4f9fcb!important;border-color:#3f81a5!important}
+.controls{padding:9px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,rgba(237,248,255,.98) 76%,rgba(237,248,255,0));backdrop-filter:blur(6px)}
+.row{gap:8px}
+.controls button{border-radius:16px;box-shadow:0 4px 0 #bcd7e5;border-color:#bcd7e5}
+.controls button.main{background:#61c391;border-color:#3c9368;box-shadow:0 4px 0 #3c9368}
+.controls button.hear{background:#67b8e9;border-color:#3f88b4;box-shadow:0 4px 0 #3f88b4}
+.controls button.ghost{box-shadow:none}
+.win>div{max-width:620px;background:rgba(255,255,255,.12);border-radius:28px;padding:26px}
+.result-box{border-radius:18px}
+@media(max-width:700px){.card{padding:18px}.controls .row:first-child button{font-size:1rem}.controls{padding-left:8px;padding-right:8px}}
+
+.backup-reminder{width:100%;font-size:.76rem;color:#6c7d86;text-align:center;margin-top:4px;min-height:1.2em}
+.backup-reminder.backup-due{color:#a06a00;font-weight:700}
+.backup-reminder.backup-error{color:#b43b2f;font-weight:700}
+#backupDlg{border:0;border-radius:18px;padding:18px;max-width:520px;width:calc(100% - 28px);box-shadow:0 18px 50px rgba(40,75,95,.25);font-family:var(--font-ui)}
+#backupDlg::backdrop{background:rgba(30,45,55,.35)}
+</style>
+<style id="responsive-reading-layout-css">
+/* ============================================================
+   Responsive reading layout — centered text with side menus
+   Desktop: left = text library, center = reading, right = tools
+   Mobile: side menus collapse behind compact toggles
+   ============================================================ */
+#v8ReadSection .wrap{
+  max-width:1400px;
+}
+#readingResponsiveLayout{
+  display:grid;
+  grid-template-columns:260px minmax(420px,760px) 260px;
+  grid-template-areas:"left center right";
+  gap:18px;
+  align-items:start;
+  justify-content:center;
+  direction:ltr;
+  margin:12px auto 24px;
+}
+#readingCenter{
+  grid-area:center;
+  direction:rtl;
+  min-width:0;
+}
+#readingLeftSidebar{
+  grid-area:left;
+  direction:rtl;
+}
+#readingRightSidebar{
+  grid-area:right;
+  direction:rtl;
+}
+.reading-sidebar{
+  background:rgba(255,255,255,.94);
+  border:2px solid var(--kid-line);
+  border-radius:24px;
+  box-shadow:0 10px 24px rgba(40,75,95,.08);
+  padding:12px;
+  position:sticky;
+  top:14px;
+  max-height:calc(100vh - 28px);
+  overflow:auto;
+}
+.reading-sidebar-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:4px 6px 10px;
+  font-size:1rem;
+  font-weight:800;
+  color:#31576c;
+}
+.reading-sidebar-title .side-icon{font-size:1.3rem}
+.reading-sidebar .side-toggle{
+  display:none;
+  width:100%;
+  box-shadow:none;
+  border-color:#cfe4ee;
+  background:#fff;
+}
+#readingLeftSidebar .text-manager{
+  margin:0 0 10px;
+}
+#readingLeftSidebar .top-actions{
+  grid-template-columns:1fr;
+  margin:8px 0;
+}
+#readingLeftSidebar .top-actions button{
+  width:100%;
+}
+#readingLeftSidebar .text-meta{
+  margin-top:8px;
+}
+#readingLeftSidebar .moreToolsRow{
+  margin-top:8px;
+}
+/* Reading playback controls moved to the left rail under "نصوصي". */
+#readingLeftSidebar .left-reading-actions{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #d8e8f0;
+}
+#readingLeftSidebar .left-reading-actions .actions-title{
+  font-size:.88rem;
+  font-weight:800;
+  color:#31576c;
+  text-align:center;
+  margin:0 0 8px;
+}
+#readingLeftSidebar .left-reading-actions .mode-strip,
+#readingLeftSidebar .left-reading-actions .pause-bar{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin:7px 0 0;
+}
+#readingLeftSidebar .left-reading-actions .mode-strip button,
+#readingLeftSidebar .left-reading-actions .pause-bar button{
+  width:100%;
+  min-height:44px;
+  font-size:.82rem;
+  border-radius:14px;
+  box-shadow:none;
+}
+#readingLeftSidebar .left-reading-actions .mode-strip button.active{
+  background:#4f9fcb!important;
+  border-color:#3f81a5!important;
+  color:#fff;
+}
+#readingLeftSidebar .left-reading-actions .pause-bar button{
+  background:#fff;
+}
+#readingLeftSidebar .left-reading-actions .pause-bar button:last-child{
+  display:none;
+}
+#readingRightSidebar .v10-tools{
+  max-width:none;
+  margin:0;
+  padding:0;
+  border:0;
+  box-shadow:none;
+  background:transparent;
+}
+#readingRightSidebar .v10-grid{
+  grid-template-columns:1fr;
+}
+#readingRightSidebar .v10-panel{
+  max-height:52vh;
+  overflow:auto;
+}
+#readingRightSidebar .side-card{
+  margin-top:10px;
+  background:#fafdff;
+  border:1px solid #d8e8f0;
+  border-radius:18px;
+  padding:9px;
+}
+#readingCenter .more-toggle-row{display:none!important}
+#readingCenter{
+  max-width:900px;
+  justify-self:center;
+}
+#readingCenter .card{
+  width:100%;
+  min-height:360px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:34px 34px 30px;
+  border:2px solid #d8e8f0;
+  background:linear-gradient(180deg,#fffdf8 0%,#fff9ef 100%);
+  box-shadow:0 16px 34px rgba(40,75,95,.10);
+}
+#readingCenter .card .counter{
+  font-size:.95rem;
+  margin-bottom:6px;
+}
+#readingCenter .bigword{
+  font-size:clamp(4rem,7vw,6.5rem);
+  line-height:1.45;
+  padding:16px 8px 20px;
+}
+#readingCenter .sheet{
+  width:100%;
+  min-height:420px;
+  padding:42px 42px 48px;
+  border:2px solid #d8e8f0;
+  background:linear-gradient(180deg,#fffdf8 0%,#fff9ef 100%);
+  box-shadow:0 16px 34px rgba(40,75,95,.10);
+}
+#readingCenter #text{
+  max-width:820px;
+  margin:0 auto;
+  font-size:clamp(2rem,3vw,2.55rem);
+  line-height:2.05;
+  text-align:center;
+}
+#readingCenter .mistakes{
+  width:100%;
+}
+#readingCenter #v8ReadControlsWrap{
+  margin-top:10px;
+}
+#readingCenter .controls{
+  position:static;
+  padding:0;
+  background:transparent;
+  backdrop-filter:none;
+}
+#readingCenter .controls .row{
+  max-width:none;
+}
+#readingCenter .controls .settings-hint{display:none}
+#readingCenter .heard{margin-left:0;margin-right:0}
+
+/* Keep child intro and parent dashboard outside the three-column reading area */
+#v8ReadSection>.wrap>header{
+  max-width:760px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+@media(max-width:1080px){
+  #readingResponsiveLayout{
+    grid-template-columns:220px minmax(380px,680px) 220px;
+    gap:12px;
+  }
+  .reading-sidebar{padding:10px}
+  #readingRightSidebar .v10-grid{grid-template-columns:1fr}
+}
+
+@media (min-width:701px) and (max-width:900px){
+  /* iPad / medium tablets: keep the three-column layout, but compact it. */
+  #readingResponsiveLayout{
+    grid-template-columns:175px minmax(360px,1fr) 175px;
+    gap:8px;
+    margin-top:8px;
+  }
+  .reading-sidebar{
+    padding:9px;
+    border-radius:20px;
+    max-height:calc(100vh - 20px);
+  }
+  .reading-sidebar-title{
+    font-size:.9rem;
+    padding:3px 4px 8px;
+  }
+  .reading-sidebar-title .side-icon{font-size:1.1rem}
+  #readingLeftSidebar .top-actions{gap:6px}
+  #readingRightSidebar .v10-grid{grid-template-columns:1fr}
+  #readingRightSidebar .v10-btn{
+    font-size:.82rem;
+    padding:9px 6px;
+  }
+  #readingRightSidebar .v10-panel{max-height:42vh}
+  #readingCenter .bigword{font-size:clamp(3rem,10vw,5rem)}
+  #readingCenter .sheet{padding:20px 14px}
+  #readingCenter #text{font-size:clamp(1.55rem,3vw,2rem);text-align:center}
+}
+
+/* Device-aware rules: the JS classifier adds data-sana-device / data-sana-layout. */
+body[data-sana-device="tablet"][data-sana-layout="landscape"] #readingResponsiveLayout{
+  grid-template-columns:220px minmax(0,1fr) 250px;
+  grid-template-areas:"left center right";
+  gap:12px;
+}
+body[data-sana-device="tablet"][data-sana-layout="landscape"] .reading-sidebar{
+  padding:10px;
+}
+body[data-sana-device="tablet"][data-sana-layout="landscape"] .reading-sidebar-title{
+  font-size:.92rem;
+}
+body[data-sana-device="tablet"][data-sana-layout="landscape"] #readingRightSidebar .v10-btn{
+  font-size:.84rem;
+  padding:9px 7px;
+}
+body[data-sana-device="tablet"][data-sana-layout="landscape"] #readingRightSidebar .v10-grid{
+  grid-template-columns:1fr;
+}
+
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingResponsiveLayout,
+body[data-sana-device="phone"] #readingResponsiveLayout{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"center" "left" "right";
+  gap:10px;
+  margin-top:8px;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingLeftSidebar,
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingRightSidebar,
+body[data-sana-device="phone"] #readingLeftSidebar,
+body[data-sana-device="phone"] #readingRightSidebar{
+  position:static;
+  max-height:none;
+  overflow:visible;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] .reading-sidebar-title,
+body[data-sana-device="phone"] .reading-sidebar-title{
+  padding:2px 4px 0;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] .reading-sidebar-title .side-toggle,
+body[data-sana-device="phone"] .reading-sidebar-title .side-toggle{
+  display:block;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] .reading-sidebar-content,
+body[data-sana-device="phone"] .reading-sidebar-content{
+  display:none;
+  margin-top:10px;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] .reading-sidebar.open .reading-sidebar-content,
+body[data-sana-device="phone"] .reading-sidebar.open .reading-sidebar-content{
+  display:block;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingRightSidebar .v10-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingLeftSidebar .left-reading-actions .mode-strip,
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingLeftSidebar .left-reading-actions .pause-bar{
+  grid-template-columns:1fr 1fr;
+}
+body[data-sana-device="phone"] #readingRightSidebar .v10-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+body[data-sana-device="tablet"] #readingCenter #text{
+  text-align:center;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingCenter .bigword{
+  font-size:clamp(3.1rem,10vw,5rem);
+}
+body[data-sana-device="phone"] #readingCenter .bigword{
+  font-size:clamp(3.1rem,18vw,5rem);
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingCenter .sheet,
+body[data-sana-device="phone"] #readingCenter .sheet{
+  padding:20px 14px;
+}
+body[data-sana-device="tablet"][data-sana-layout="portrait"] #readingCenter #text{
+  font-size:clamp(1.6rem,4.1vw,2.2rem);
+}
+body[data-sana-device="phone"] #readingCenter #text{
+  font-size:clamp(1.55rem,5vw,2rem);
+}
+
+@media(max-width:560px){
+  #readingResponsiveLayout{gap:8px}
+  #readingCenter .card{min-height:260px;padding:20px 14px}
+  #readingCenter .sheet{min-height:330px;padding:28px 16px 34px}
+  #readingCenter #text{font-size:clamp(1.65rem,5.6vw,2.1rem);line-height:2}
+  #readingLeftSidebar .left-reading-actions .mode-strip,
+  #readingLeftSidebar .left-reading-actions .pause-bar{grid-template-columns:1fr 1fr}
+  #readingCenter .ghostw{font-size:1rem}
+  #readingCenter .bigword{font-size:clamp(2.8rem,19vw,4.5rem)}
+  #readingCenter .controls .row{gap:6px}
+  #readingCenter .controls button{font-size:.9rem;padding:10px 6px}
+  #readingRightSidebar .v10-grid{grid-template-columns:1fr 1fr}
+  #readingLeftSidebar .top-actions{grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:420px){
+  #readingCenter .controls .row{flex-wrap:wrap}
+  #readingCenter .controls .row button{min-width:31%}
+  #readingCenter .controls .row:first-child button.mic{min-width:100%}
+  #readingCenter .controls .row:first-child{flex-direction:column}
+  #readingCenter .controls .row:first-child button{width:100%}
+  #readingLeftSidebar .top-actions{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div style="max-width:860px;margin:0 auto 10px;text-align:center">
+<button class="ghost" id="coachPanelsBtn" style="max-width:260px">📊 لوحة المتابعة (للأهل)</button>
+</div>
+<div class="v9-dashboard hide" id="v9Dashboard">
+<div class="v9-grid">
+<div class="v9-stat"><b id="v9Lessons">0</b><span>جلسات</span></div>
+<div class="v9-stat"><b id="v9Words">0</b><span>كلمات</span></div>
+<div class="v9-stat"><b id="v9Best">0%</b><span>أفضل دقة</span></div>
+</div>
+<div class="v9-actions">
+<button id="v9ProgressBtn">📊 تقدمي</button>
+<button id="v9BackupBtn">💾 النسخ الاحتياطي</button>
+</div>
+<div id="backupReminder" class="backup-reminder" role="status" aria-live="polite"></div>
+<div class="v9-panel v9-hidden" id="v9ProgressPanel">
+<h3>🎯 الكلمات التي تحتاج تدريبًا</h3>
+<div id="v9HardWords">لا توجد كلمات صعبة مسجلة بعد.</div>
+</div>
+</div>
+<div class="v10-tools hide" id="v10ToolsWrap">
+<div class="v10-grid">
+<button class="v10-btn" id="v10Listen">🎧 استماع</button>
+<button class="v10-btn" id="v10ReadAlong">🗣️ اقرأ معي</button>
+<button class="v10-btn" id="v10Pron">🎤 قيّم نطقي</button>
+<button class="v10-btn" id="v10Hard">🎯 نقاط ضعفي</button>
+<button class="v10-btn" id="v10Progress">📊 تقدمي</button>
+<button class="v10-btn" id="v10Report">📄 تقرير</button>
+</div>
+<div class="v10-panel hide" id="v10Panel"></div>
+</div>
+<div class="child-intro" style="max-width:860px;margin:10px auto 8px;text-align:center;background:#fff;border:2px solid #d8e8f0;border-radius:22px;padding:12px 16px;box-shadow:0 8px 18px rgba(40,75,95,.07)"><div style="font-size:1.55rem">🌟 جاهزة للقراءة؟</div><div style="color:#6c7d86;font-size:.95rem">اسمعي أولًا 🔊 ثم اقرئي بهدوء 🎤 وخذي وقتك.</div></div><div id="v8ReadSection">
+<div class="wrap">
+<header>
+<h1>اقرئي <span>كلمة كلمة</span> 📖</h1>
+<div class="stats">
+<div class="pill">⭐ <span id="score">0</span></div>
+<div class="pill">📊 <span id="prog">0</span>%</div>
+</div>
+</header>
+<div class="banner hide" id="banner"></div>
+<div class="more-toggle-row" style="display:flex;justify-content:center;margin:6px 0 10px">
+<button class="ghost" id="moreToolsBtn" style="max-width:220px">⚙️ المزيد من الأدوات</button>
+</div>
+<div class="hide" id="moreToolsPanel">
+<div class="text-manager">
+<div class="inline">
+<select aria-label="النصوص المحفوظة" id="savedTextSel"></select>
+<button class="ghost" id="manageTextsBtn">📚 نصوصي</button>
+</div>
+<div class="saved-count" id="savedCount">لا توجد نصوص محفوظة</div>
+</div>
+<div class="top-actions">
+<button id="progressBtn">📊 تقدّمي</button>
+<button id="backupTextsBtn">⬇ نصوصي</button>
+<button id="shareBtn">📤 مشاركة</button>
+</div>
+<div class="text-meta" id="textMeta">—</div>
+<div class="row" style="margin-top:8px">
+<button class="ghost" id="recBtn">🎙 سجّل بصوتك</button>
+<button class="ghost" id="voiceBtn">⚙️ إعدادات الصوت</button>
+<button class="ghost" id="diagBtn">🩺 فحص</button>
+<button class="ghost" id="editBtn">✎ غيّري النص</button>
+</div>
+</div>
+<div class="card" id="cardView">
+<div class="counter">الكلمة <span id="cnow">1</span> من <span id="ctot">1</span></div>
+<div class="ghostw"><span id="prevw"></span></div>
+<div class="bigword" id="bigword">…</div>
+<div class="ghostw"><span id="nextw"></span></div>
+</div>
+<div class="sheet hide" id="fullView">
+<div id="text"></div>
+</div>
+<div class="bar"><i id="fill"></i></div>
+<div aria-label="وضع القراءة" class="mode-strip">
+<button class="active" data-mode="word" aria-pressed="true">🔠 كلمة</button>
+<button data-mode="full" aria-pressed="false">📖 النص كامل</button>
+</div>
+<div class="pause-bar">
+<button id="repeatBtn">🔁 أعد الكلمة</button>
+<button id="pauseBtn">⏸ إيقاف مؤقت</button>
+<button class="hide" id="readAndAssessBtn">🎤 اقرئي وقيّمي</button>
+</div>
+<div class="heard" id="heard">اضغطي 🔊 لتسمعي الكلمة، وبعدين 🎤 لتقرئيها.</div>
+<small class="note">🎧 Sana تقرأ لك — يمكنك التبديل بين كلمة/نص كامل، وإيقاف القراءة مؤقتًا أو إعادة الكلمة.</small>
+<div id="azureSecureStatus" style="margin-top:8px;font-size:.78rem;color:#2f8f5b;font-weight:700;text-align:center">☁️ Azure Neural: Sana — صوت تعليمي عبر Token</div>
+</div>
+<div class="mistakes" id="mistakesBox">
+<div class="mistakes-title">🎯 كلمات تحتاج تدريبًا</div>
+<div class="mistake-list" id="mistakeList"></div>
+</div>
+</div>
+<div id="v8ReadControlsWrap">
+<div class="controls">
+<div class="settings-hint" style="text-align:center;color:#6b7b83;font-size:.82rem;margin:0 0 8px">⚙️ إعدادات الصوت موجودة داخل «إعدادات الصوت» فقط</div>
+<div class="row">
+<button class="mic" id="micBtn">🎤 ابدئي القراءة</button>
+<button id="sayBtn">🔊 اسمعي</button>
+<button id="okBtn">✓ صح</button>
+</div>
+<div class="row">
+<button id="prevBtn">⏮ السابقة</button>
+<button id="nextBtn">⏭ التالية</button>
+</div>
+<div class="row">
+<button class="read" id="readBtn">📖 اقرأ لي النص</button>
+</div>
+<div class="row">
+<button class="ghost" id="resetBtn">↺ من البداية</button>
+</div>
+</div>
+</div>
+<div class="win" id="win">
+<div>
+<div style="font-size:4rem">🏆</div>
+<h2>أحسنتِ! خلّصتِ النص</h2>
+<div class="result-grid">
+<div class="result-box"><b id="resAccuracy">0%</b><span>الدقة</span></div>
+<div class="result-box"><b id="resTime">00:00</b><span>الوقت</span></div>
+<div class="result-box"><b id="resWords">0/0</b><span>الكلمات</span></div>
+</div>
+<p id="winMsg"></p>
+<button id="restartLessonBtn" style="max-width:220px;margin:auto;background:#fff">↺ مرة ثانية</button>
+<button id="reviewBtn" style="max-width:220px;margin:8px auto 0;background:#fff">🎯 تدرب على الكلمات الصعبة</button>
+</div>
+</div>
+<dialog id="dlg" aria-labelledby="textDialogTitle">
+<h3 id="textDialogTitle" style="margin-top:0">📚 إدارة النصوص</h3>
+<label for="textName" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">اسم النص</label>
+<input id="textName" placeholder="اسم النص، مثل: درس المدرسة" type="text"/>
+<label for="ta" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">نص القراءة</label>
+<textarea id="ta" placeholder="اكتبي النص هنا..."></textarea>
+<div class="row" style="margin-top:10px">
+<button id="saveNewTextBtn">💾 حفظ كنص جديد</button>
+<button class="ghost" id="updateTextBtn">✏️ تحديث النص</button>
+<button class="ghost" id="deleteTextBtn">🗑 حذف</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button class="ghost" id="importTextsBtn">⬆ استرجاع نصوص</button>
+<button class="ghost" id="exportTextsBtn2">⬇ تصدير نصوص</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button class="ghost" id="useTextBtn">▶ استخدام النص</button>
+<button class="ghost" id="closeDlgBtn">إغلاق</button>
+</div>
+</dialog>
+<dialog id="recDlg" aria-labelledby="recordingDialogTitle">
+<h3 id="recordingDialogTitle" style="margin-top:0">🎙 سجّلي الكلمات بصوتك</h3>
+<p style="margin:0 0 8px;font-size:.85rem;color:#7b8085">
+    اضغطي مطوّلاً على الزر الأحمر واقرأي الكلمة، وارفعي إصبعك. بتنحفظ على هذا الجهاز.</p>
+<div style="background:#fff3cf;border:2px solid #f0b429;border-radius:14px;padding:10px;margin-bottom:10px;text-align:center">
+<div style="font-size:.85rem;font-weight:800">🎙 سجّلي النص كامل بمرة وحدة</div>
+<div style="font-size:.78rem;color:#8b7a3a;margin:2px 0 8px">اقرئي النص كله بصوتك الطبيعي — أفضل من كلمة كلمة</div>
+<div id="fState" style="font-size:.8rem;color:#8b9096;min-height:1.2em">— مش مسجّل</div>
+<div class="row" style="margin-top:6px">
+<button id="fRec" style="background:#e2725b;color:#fff;border-color:#a8442f;box-shadow:0 4px 0 #a8442f;flex:2">⏺ اضغطي واقرئي النص كامل</button>
+<button id="fPlay">▶ اسمعي</button>
+<button class="ghost" id="fDel">🗑</button>
+</div>
+</div>
+<div style="text-align:center;background:#fbf6e9;border-radius:14px;padding:10px;border:1px solid #e6dcc6">
+<div style="font-size:.78rem;color:#8b9096;font-weight:700">تسجيل كلمة كلمة (اختياري)</div>
+<div style="font-size:.8rem;color:#8b9096;font-weight:700">
+<span id="rNow">1</span> / <span id="rTot">1</span> — مسجّلة: <span id="rDone">0</span></div>
+<div id="rWord" style="font-family:var(--font-read);font-size:2.4rem;font-weight:700;padding:6px"></div>
+<div id="rState" style="font-size:.8rem;color:#8b9096;min-height:1.2em"></div>
+</div>
+<div class="row" style="margin-top:10px">
+<button id="rRec" style="background:#e2725b;color:#fff;border-color:#a8442f;box-shadow:0 4px 0 #a8442f;flex:2">⏺ اضغطي واقرأي</button>
+<button id="rPlay">▶ اسمعي</button>
+</div>
+<div class="row" style="margin-top:7px">
+<button class="ghost" id="rPrev">⏮ السابقة</button>
+<button class="ghost" id="rNext">⏭ التالية</button>
+<button class="ghost" id="rDel">🗑 امسحي</button>
+</div>
+<div class="row" style="margin-top:7px">
+<button class="ghost" id="rExp">⬇ نسخة احتياطية</button>
+<button class="ghost" id="rImp">⬆ استرجاع</button>
+<button class="ghost" id="closeRecDlgBtn">تمام</button>
+</div>
+<input accept="application/json" id="rFile" style="display:none" type="file"/>
+<input accept="application/json" id="textsFile" style="display:none" type="file"/>
+</dialog>
+<dialog id="voiceDlg" aria-labelledby="voiceDialogTitle">
+<h3 id="voiceDialogTitle" style="margin-top:0">🎚 إعدادات الصوت</h3>
+<div class="set">
+<label for="azureVoiceSel">الصوت العربي</label>
+<select id="azureVoiceSel">
+<option value="ar-JO-SanaNeural">🇯🇴 Sana — أنثى أردنية</option>
+<option value="ar-JO-TaimNeural">🇯🇴 Taim — ذكر أردني</option>
+</select>
+<label for="azureRegion">منطقة Azure (Region)</label>
+<input id="azureRegion" readonly="" value="eastus"/>
+<div style="font-size:.78rem;color:#7b8085;background:#fff3cf;border:1px solid #f0b429;border-radius:10px;padding:8px;margin-top:8px">🔐 مفتاح Azure محفوظ داخل الخادم ولا يتم وضعه داخل GitHub.</div>
+<small style="display:block;color:#8b9096;margin-top:5px;line-height:1.5">🔐 للاستخدام المحلي فقط. لتطبيق منشور، ضع الاستدعاء في خادم وسيط ولا تضع المفتاح داخل الموقع.</small>
+<label for="rateSel">سرعة القراءة: <span id="rateVal">0.70</span></label>
+<input id="rateSel" max="1.1" min="0.4" step="0.05" type="range" value="0.7"/>
+<div class="row" style="margin-top:7px">
+<button class="ghost" data-speed="0.60" type="button">🐢 بطيء</button>
+<button class="ghost" data-speed="0.75" type="button">🙂 تعليمي</button>
+<button class="ghost" data-speed="0.90" type="button">📖 طبيعي</button>
+</div>
+<label for="pausePreset">نمط الوقفات</label>
+<select id="pausePreset">
+<option value="short">⚡ قصيرة</option>
+<option selected="" value="normal">🙂 طبيعية</option>
+<option value="long">🐢 طويلة</option>
+</select>
+<div class="chk"><input id="noTash" type="checkbox"/> <label for="noTash">انطق بدون تشكيل (جرّبيها إذا اللفظ غريب)</label></div>
+<div class="row" style="margin-top:12px">
+<button id="testVoiceBtn">🔊 جرّبي الصوت</button>
+<button class="ghost" id="closeVoiceDlgBtn">تمام</button>
+</div>
+</div>
+</dialog>
+<dialog id="progressDlg" aria-labelledby="progressDialogTitle">
+<h3 id="progressDialogTitle" style="margin-top:0">📊 تقدّمي</h3>
+<div class="progress-card">
+<h4 id="pTextName">النص الحالي</h4>
+<div class="progress-grid">
+<div class="prog-box"><b id="pAcc">0%</b><span>الدقة</span></div>
+<div class="prog-box"><b id="pBest">0</b><span>أفضل سلسلة</span></div>
+<div class="prog-box"><b id="pAttempts">0</b><span>المحاولات</span></div>
+<div class="prog-box"><b id="pWords">0</b><span>كلمات مقروءة</span></div>
+</div>
+<div class="history-list" id="historyList"></div>
+</div>
+<div class="row" style="margin-top:10px">
+<button id="exportProgressBtn">⬇ تصدير التقدم</button>
+<button class="ghost" id="closeProgressDlgBtn">تمام</button>
+</div>
+</dialog>
+<dialog id="backupDlg" aria-labelledby="backupDialogTitle">
+<h3 id="backupDialogTitle" style="margin-top:0">💾 النسخ الاحتياطي</h3>
+<p style="color:#6c7d86;margin-top:0">احفظي نسخة من بيانات التطبيق والتسجيلات، أو استعيدي نسخة سابقة.</p>
+<div class="row" style="margin-top:10px">
+<button id="backupExportBtn">⬇ إنشاء نسخة</button>
+<button id="backupImportBtn">⬆ استعادة نسخة</button>
+<input id="backupFileInput" type="file" accept="application/json,.json" hidden>
+<button class="ghost" id="closeBackupDlgBtn">تمام</button>
+</div>
+</dialog>
+<dialog id="diagDlg" aria-labelledby="diagDialogTitle">
+<h3 id="diagDialogTitle" style="margin-top:0">🩺 فحص الصوت والمايك</h3>
+<div id="diag">جارٍ الفحص…</div>
+<div class="row" style="margin-top:10px">
+<button id="closeDiagDlgBtn">تمام</button>
+</div>
+</dialog>
+<script src="sana-backup.js"></script>
+<script src="reading-ui.js"></script>
+<script src="reading-pronunciation.js"></script>
+<script src="reading-lesson-state.js"></script>
+<script src="reading-text-manager.js"></script>
+<script src="reading-audio.js"></script>
+<script src="reading-recordings.js"></script>
+<script>
+
+
+const lessonProgress = {
+  state:{correct:0, wrong:0, streak:0, best:0, startedAt:null, mistakes:{}, attempts:0, finished:false, wordCount:0},
+  history:[]
+};
+window.sanaReadingProgress = {
+  get state(){ return lessonProgress.state; },
+  get history(){ return lessonProgress.history; },
+  load(){ loadLessonProgress(); },
+  save(){ saveLessonProgress(); },
+  reset(){ resetLessonProgress(); },
+  recordCorrect(target){ recordLessonCorrect(target); },
+  recordWrong(target){ recordLessonWrong(target); }
+};
+function loadLessonProgress(){try{const x=JSON.parse(localStorage.getItem(LESSON_PROGRESS_STORAGE)||'{}'); if(x && typeof x==='object') lessonProgress.state={...lessonProgress.state,...x,mistakes:x.mistakes||{}};}catch(e){}; try{const h=JSON.parse(localStorage.getItem(LESSON_HISTORY_STORAGE)||'[]'); lessonProgress.history=Array.isArray(h)?h:[];}catch(e){lessonProgress.history=[];}}
+function saveLessonProgress(){try{localStorage.setItem(LESSON_PROGRESS_STORAGE,JSON.stringify(lessonProgress.state)); localStorage.setItem(LESSON_HISTORY_STORAGE,JSON.stringify(lessonProgress.history.slice(-50)));}catch(e){}}
+function uid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);}
+function loadTexts(){ sanaTextManager.load(); renderTextSelector(); }
+function renderTextMeta(){
+  const el=$('textMeta'); if(!el)return;
+  const wc=readingLessonState.words.length; const chars=(sanaTextManager.current.text||'').length;
+  const hist=window.sanaReadingProgress.history.filter(h=>h.textId===sanaTextManager.current.id);
+  const last=hist.length?hist[hist.length-1]:null;
+  el.textContent=`📖 ${sanaTextManager.current.name||'نص'} · ${wc} كلمة · ${chars} حرف` + (last?` · آخر دقة ${last.accuracy}%`:'');
+}
+function renderLessonProgress(){
+  $('score').textContent=readingLessonState.score; $('prog').textContent=readingLessonState.words.length?Math.round(readingLessonState.idx/readingLessonState.words.length*100):0;
+  const acc=accuracy(); const wordsRead=window.sanaReadingProgress.state.wordCount||window.sanaReadingProgress.state.correct||0;
+  const s=$('pTextName'); if(s)s.textContent=sanaTextManager.current.name||'النص الحالي';
+  if($('pAcc'))$('pAcc').textContent=acc+'%'; if($('pBest'))$('pBest').textContent=window.sanaReadingProgress.state.best||0; if($('pAttempts'))$('pAttempts').textContent=window.sanaReadingProgress.state.attempts||0; if($('pWords'))$('pWords').textContent=wordsRead;
+  const list=$('historyList'); if(list){ list.replaceChildren(); const hist=window.sanaReadingProgress.history.filter(h=>h.textId===sanaTextManager.current.id).slice().reverse().slice(0,12); hist.forEach(h=>{const d=document.createElement('div');d.className='history-item';const when=document.createElement('span');when.textContent=new Date(h.at).toLocaleString('ar-JO',{dateStyle:'short',timeStyle:'short'});const score=document.createElement('b');score.textContent=`${h.accuracy}% · ${h.correct}/${h.total}`;d.append(when,score);list.appendChild(d);}); if(!hist.length){const empty=document.createElement('div');empty.className='history-item';empty.textContent='لا توجد محاولات محفوظة بعد.';list.appendChild(empty);} }
+  renderLessonMistakes(); renderTextMeta();
+}
+function renderTextSelector(){
+  const sel=$('savedTextSel'); if(!sel)return;
+  sel.innerHTML='';
+  sanaTextManager.list.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name;sel.appendChild(o);});
+  if(sanaTextManager.current?.id) sel.value=sanaTextManager.current.id;
+  const c=$('savedCount'); if(c)c.textContent = sanaTextManager.list.length===1 ? 'نص واحد محفوظ' : `${sanaTextManager.list.length} نصوص محفوظة`;
+}
+function selectSavedText(id, autoStart=true){
+  const t=sanaTextManager.select(id); if(!t)return;
+  renderTextSelector();
+  stopAll(); buildReadingLesson(t.text); resetLessonProgress(); readingUi.say('📖 النص المختار: '+t.name);
+  const ta=$('ta'),name=$('textName'); if(ta)ta.value=t.text; if(name)name.value=t.name;
+}
+function opensanaTextManager(){
+  const ta=$('ta'),name=$('textName'); if(ta)ta.value=sanaTextManager.current.text; if(name)name.value=sanaTextManager.current.name;
+  $('dlg').showModal();
+}
+function createSavedText(){
+  const name=($('textName').value||'').trim()||`نص ${sanaTextManager.list.length+1}`;
+  const text=($('ta').value||'').trim();
+  if(!text){readingUi.say('اكتبي نصًا أولًا.');return;}
+  const t=sanaTextManager.create(name, text);
+  renderTextSelector(); buildReadingLesson(t.text); resetLessonProgress(); readingUi.say('✅ تم حفظ النص: '+name);
+}
+function updateSavedText(){
+  const text=($('ta').value||'').trim();
+  if(!text){readingUi.say('اكتبي نصًا أولًا.');return;}
+  const name=($('textName').value||'').trim()||sanaTextManager.current.name||'نص بدون اسم';
+  const t=sanaTextManager.update(sanaTextManager.current.id, {name, text});
+  if(!t)return;
+  renderTextSelector(); invalidateFullAudioCache(); buildReadingLesson(text); resetLessonProgress(); readingUi.say('✅ تم تحديث النص: '+name);
+}
+function deleteSavedText(){
+  if(sanaTextManager.list.length<=1){readingUi.say('يجب أن يبقى نص واحد على الأقل.');return;}
+  const name=sanaTextManager.current.name;
+  const removed=sanaTextManager.remove(sanaTextManager.current.id); if(!removed)return;
+  renderTextSelector(); buildReadingLesson(sanaTextManager.current.text); resetLessonProgress(); readingUi.say('🗑 تم حذف: '+name); $('dlg').close();
+}
+function useManagedText(){
+  const text=($('ta').value||'').trim(); if(!text){readingUi.say('اكتبي نصًا أولًا.');return;}
+  const entry={...sanaTextManager.current, name:(($('textName').value||'').trim()||sanaTextManager.current.name||'نص جديد'), text};
+  sanaTextManager.upsert(entry);
+  renderTextSelector(); buildReadingLesson(text); resetLessonProgress(); readingUi.say('📖 تم استخدام النص: '+sanaTextManager.current.name); $('dlg').close();
+}
+function recordLessonWrong(target){window.sanaReadingProgress.state.wrong++;window.sanaReadingProgress.state.attempts++;window.sanaReadingProgress.state.streak=0;window.sanaReadingProgress.state.wordCount=(window.sanaReadingProgress.state.wordCount||0)+1; const k=norm(target); window.sanaReadingProgress.state.mistakes[k]=(window.sanaReadingProgress.state.mistakes[k]||0)+1;window.sanaReadingProgress.save();renderLessonProgress();}
+function recordLessonCorrect(target){window.sanaReadingProgress.state.correct++;window.sanaReadingProgress.state.attempts++;window.sanaReadingProgress.state.streak++;window.sanaReadingProgress.state.wordCount=(window.sanaReadingProgress.state.wordCount||0)+1;window.sanaReadingProgress.state.best=Math.max(window.sanaReadingProgress.state.best,window.sanaReadingProgress.state.streak);window.sanaReadingProgress.save();renderLessonProgress();}
+function renderLessonMistakes(){const box=$('mistakesBox'),list=$('mistakeList'); if(!box||!list)return; const entries=Object.entries(window.sanaReadingProgress.state.mistakes||{}).sort((a,b)=>b[1]-a[1]).slice(0,12); box.classList.toggle('show',entries.length>0); list.innerHTML=''; entries.forEach(([k,n])=>{const b=document.createElement('button');b.className='mistake-chip';b.textContent=k+' ×'+n;b.onclick=()=>{const i=readingLessonState.words.findIndex(w=>norm(w)===k);if(i>=0){readingLessonState.idx=i;paintReadingLesson();readingUi.say('🎯 تدرّبي على: '+readingLessonState.words[i]);}};list.appendChild(b);});}
+function accuracy(){ const total=(window.sanaReadingProgress.state.correct||0)+(window.sanaReadingProgress.state.wrong||0); return total?Math.round((window.sanaReadingProgress.state.correct||0)/total*100):0; }
+function elapsedMs(){ return window.sanaReadingProgress.state.startedAt ? Math.max(0,Date.now()-window.sanaReadingProgress.state.startedAt) : 0; }
+function fmtTime(ms){ const sec=Math.floor((ms||0)/1000), m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+function resetLessonProgress(){ lessonProgress.state={correct:0,wrong:0,streak:0,best:0,startedAt:Date.now(),mistakes:{},attempts:0,finished:false,wordCount:0}; readingPlaybackState.paused=false; readingPlaybackState.index=0; saveLessonProgress(); renderLessonProgress(); }
+function restoreLessonProgress(){window.sanaReadingProgress.load();renderLessonProgress();}
+const readingAudioTokens={mic:0,full:0,word:0};
+function sim(a,b){
+  if(a===b) return 1;
+  if(!a||!b) return 0;
+  const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) d[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return 1-d[m][n]/Math.max(m,n);
+}
+function accept(said,target){
+  const t=norm(target), s=norm(said);
+  if(!t) return true; if(!s) return false; if(s===t) return true;
+  if(t.length>3 && (s.includes(t)||t.includes(s))) return true;
+  const th = t.length<=3 ? .95 : (t.length<=5 ? .75 : .68);
+  return sim(s,t) >= th;
+}
+
+
+function handleT(said){
+  const heard=String(said||'').trim();
+  const target=readingLessonState.words[readingLessonState.idx]||'';
+  if(!target) return;
+  $('heard').innerHTML=heard?`سمعت: <b>${window.sanaUtils.escapeHtml(heard)}</b>`:'استمع…';
+  if(accept(heard,target) || norm(heard).includes(norm(target))){
+    readingLessonState.score++;
+    recordLessonCorrect(target);
+    $('bigword').classList.add('ok','pop');
+    setTimeout(()=>$('bigword').classList.remove('pop','ok'),450);
+    window.sanaUtils.beep(880,.12);
+    readingLessonState.idx++;
+    stopMic();
+    if(readingLessonState.idx>=readingLessonState.words.length){paintReadingLesson();finishReadingLesson();}
+    else {paintReadingLesson();readingUi.say('✅ ممتاز! الكلمة التالية: '+readingLessonState.words[readingLessonState.idx]);}
+  }
+}
+function buildReadingLesson(txt){
+  invalidateFullAudioCache();
+  const box=$('text'); box.innerHTML="";
+  readingLessonState.words = txt.trim().split(/\s+/).filter(Boolean);
+  readingLessonState.words.forEach((w,i)=>{
+    const el=document.createElement('span');
+    el.className='w'; el.textContent=w; el.onclick=()=>{readingLessonState.idx=i;paintReadingLesson();};
+    box.appendChild(el); box.appendChild(document.createTextNode(' '));
+  });
+  readingLessonState.idx=0; readingLessonState.score=0; readingPlaybackState.paused=false; readingPlaybackState.index=0; paintReadingLesson(); refreshRecSet();
+  renderLessonProgress();
+  // جهّز صوت النص الكامل في الخلفية واحفظه على الجهاز. لا يبدأ التشغيل أو التأشير هنا.
+  setTimeout(()=>{ if(readingSession.mode==='full') prepareFullAudio(false).catch(()=>{}); },120);
+}
+function paintReadingLesson(){
+  document.querySelectorAll('.w').forEach((el,i)=>{
+    el.classList.toggle('done',i<readingLessonState.idx);
+    el.classList.toggle('now',i===readingLessonState.idx && !readingPlaybackState.active);
+  });
+  $('bigword').textContent = readingLessonState.words[readingLessonState.idx] || '🎉';
+  $('bigword').className = 'bigword';
+  $('prevw').textContent = readingLessonState.idx>0 ? readingLessonState.words[readingLessonState.idx-1] : '';
+  $('nextw').textContent = readingLessonState.idx<readingLessonState.words.length-1 ? readingLessonState.words[readingLessonState.idx+1] : '';
+  $('cnow').textContent = Math.min(readingLessonState.idx+1, readingLessonState.words.length);
+  $('ctot').textContent = readingLessonState.words.length;
+  const pct = readingLessonState.words.length ? Math.round(readingLessonState.idx/readingLessonState.words.length*100) : 0;
+  $('fill').style.width=pct+'%'; $('prog').textContent=pct; $('score').textContent=readingLessonState.score;
+  const cur=document.querySelector('.w.now');
+  if(cur && !$('fullView').classList.contains('hide')) cur.scrollIntoView({block:'center',behavior:'smooth'});
+}
+
+
+
+function markReadingCorrect(){
+  const target=readingLessonState.words[readingLessonState.idx]||''; const b=$('bigword'); b.classList.add('ok','pop'); setTimeout(()=>b.classList.remove('pop'),450);
+  window.sanaUtils.beep(880,.12); setTimeout(()=>window.sanaUtils.beep(1320,.14),90); readingLessonState.score++; recordLessonCorrect(target); readingLessonState.idx++;
+  if(readingLessonState.idx>=readingLessonState.words.length){ paintReadingLesson(); finishReadingLesson(); return; }
+  setTimeout(paint,180);
+}
+function markReadingWrong(){
+  const target=readingLessonState.words[readingLessonState.idx]||''; const b=$('bigword'); b.classList.add('miss'); setTimeout(()=>b.classList.remove('miss'),350); recordLessonWrong(target);
+}
+function finishReadingLesson(){
+  stopAll();
+  window.sanaReadingProgress.state.finished=true;
+  const entry={at:Date.now(),textId:sanaTextManager.current.id,textName:sanaTextManager.current.name,accuracy:accuracy(),correct:readingLessonState.score,total:readingLessonState.words.length,elapsed:elapsedMs()};
+  window.sanaReadingProgress.history.push(entry); window.sanaReadingProgress.save(); renderLessonProgress();
+  $('resAccuracy').textContent=entry.accuracy+'%'; $('resTime').textContent=fmtTime(entry.elapsed); $('resWords').textContent=readingLessonState.score+'/'+readingLessonState.words.length;
+  $('winMsg').textContent='قرأتِ '+readingLessonState.words.length+' كلمة وجمعتِ '+readingLessonState.score+' نجمة ⭐ — ممتاز!';
+  $('win').classList.add('show');
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>window.sanaUtils.beep(f,.25),i*140));
+  window.sanaEffects.confetti(60);
+}
+window.sanaReadingLesson = { build: buildReadingLesson, paint: paintReadingLesson, correct: markReadingCorrect, wrong: markReadingWrong, finish: finishReadingLesson, restart: restartReadingLesson };
+function restartReadingLesson(){ $('win').classList.remove('show'); stopAll(); buildReadingLesson(sanaTextManager.current.text); resetLessonProgress(); readingUi.say('📖 بدأنا من البداية: '+sanaTextManager.current.name); }
+function hi(i){
+  document.querySelectorAll('.w').forEach((el,k)=>el.classList.toggle('spk',k===i));
+  if(readingLessonState.words[i]!==undefined){
+    $('bigword').textContent=readingLessonState.words[i]; $('cnow').textContent=i+1;
+    $('prevw').textContent=i>0?readingLessonState.words[i-1]:''; $('nextw').textContent=i<readingLessonState.words.length-1?readingLessonState.words[i+1]:'';
+  }
+}
+
+async function exportTexts(){
+  const payload={version:1,exportedAt:new Date().toISOString(),texts:sanaTextManager.list,selectedId:sanaTextManager.current.id};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='reading-texts-backup.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  readingUi.say('⬇️ تم تصدير النصوص المحفوظة.');
+}
+async function importTexts(file){
+  try{
+    const obj=JSON.parse(await file.text()); if(!Array.isArray(obj.texts))throw new Error('bad');
+    const byName=new Map(sanaTextManager.list.map(t=>[t.name,t]));
+    obj.texts.forEach(t=>{
+      if(t&&t.text){
+        if(byName.has(t.name)){ const old=byName.get(t.name); old.text=t.text; }
+        else{ sanaTextManager.list.push({id:uid(),name:t.name,text:t.text}); }
+      }
+    });
+    sanaTextManager.current=sanaTextManager.list[0];
+    sanaTextManager.save(); renderTextSelector(); buildReadingLesson(sanaTextManager.current.text); resetLessonProgress(); readingUi.say('✅ تم استرجاع النصوص.');
+  }catch(e){readingUi.say('❌ ملف النصوص غير صالح.');}
+}
+function shareCurrentText(){
+  const text=`${sanaTextManager.current.name}\n\n${sanaTextManager.current.text}`;
+  if(navigator.share){navigator.share({title:sanaTextManager.current.name||'نص قراءة',text}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>readingUi.say('📋 تم نسخ النص للمشاركة.')).catch(()=>readingUi.say('انسخي النص من إدارة النصوص.'));}else readingUi.say('📋 انسخي النص من إدارة النصوص لمشاركته.');
+}
+function exportProgress(){ const payload={version:1,exportedAt:new Date().toISOString(),history:window.sanaReadingProgress.history, current:window.sanaReadingProgress.state}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='reading-progress.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+window.getReadingReference=()=> readingSession.mode==='full' ? readingLessonState.words.join(' ') : (readingLessonState.words[readingLessonState.idx]||'');
+$('micBtn').onclick=async()=>{
+  if(readingMicState.active){ stopMic(); readingUi.say('⏹ توقّف الاستماع.'); return; }
+  stopRead();
+  await startMic();
+};
+$('sayBtn').onclick=()=>{ if(readingLessonState.words[readingLessonState.idx]){ stopRead(); window.sanaReadingAudio.speak(readingLessonState.words[readingLessonState.idx],null,{source:'single-word',playWhenActive:false}); } };
+$('okBtn').onclick=()=> readingLessonState.idx<readingLessonState.words.length && markReadingCorrect();
+$('prevBtn').onclick=()=>{ if(readingLessonState.idx>0){ readingLessonState.idx--; paintReadingLesson(); } };
+$('nextBtn').onclick=()=>{ if(readingLessonState.idx<readingLessonState.words.length){ markReadingWrong(); readingLessonState.idx++; paintReadingLesson(); if(readingLessonState.idx>=readingLessonState.words.length) finishReadingLesson(); } };
+$('readBtn').onclick=()=> readAloud();
+$('resetBtn').onclick=()=>{ invalidateFullAudioCache(); stopAll(); restartReadingLesson(); };
+$('editBtn').onclick=opensanaTextManager;
+$('manageTextsBtn').onclick=opensanaTextManager;
+$('savedTextSel').onchange=e=>{ invalidateFullAudioCache(); selectSavedText(e.target.value); };
+$('saveNewTextBtn').onclick=createSavedText;
+$('updateTextBtn').onclick=updateSavedText;
+$('deleteTextBtn').onclick=deleteSavedText;
+$('useTextBtn').onclick=useManagedText;
+$('progressBtn').onclick=()=>{renderLessonProgress();$('progressDlg').showModal();};
+$('backupTextsBtn').onclick=exportTexts;
+$('shareBtn').onclick=shareCurrentText;
+$('moreToolsBtn').onclick=()=>{
+  const panel=$('moreToolsPanel');
+  const btn=$('moreToolsBtn');
+  const showing=panel.classList.toggle('hide')===false;
+  btn.textContent = showing ? '⬆ إخفاء الأدوات' : '⚙️ المزيد من الأدوات';
+};
+$('coachPanelsBtn').onclick=()=>{
+  const a=$('v9Dashboard'), b=$('v10ToolsWrap'), btn=$('coachPanelsBtn');
+  const nowHidden=a.classList.toggle('hide');
+  b.classList.toggle('hide', nowHidden);
+  btn.textContent = nowHidden ? '📊 لوحة المتابعة (للأهل)' : '⬆ إخفاء لوحة المتابعة';
+  if(!nowHidden && window.readingCoachV10?.renderParentDashboard) window.readingCoachV10.renderParentDashboard();
+};
+$('exportProgressBtn').onclick=exportProgress;
+$('repeatBtn').onclick=repeatCurrentWord;
+$('pauseBtn').onclick=pauseReading;
+$('readAndAssessBtn').onclick=()=>{ if(typeof window.runFullTextPron === 'function') window.runFullTextPron(); };
+$('exportTextsBtn2').onclick=exportTexts;
+$('importTextsBtn').onclick=()=>$('textsFile').click();
+$('textsFile').onchange=e=>{if(e.target.files[0])importTexts(e.target.files[0]);};
+document.querySelectorAll('[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{
+  if(readingPlaybackState.active) stopRead();
+  readingSession.mode=btn.dataset.mode==='full' ? 'full' : 'word';
+  document.querySelectorAll('[data-mode]').forEach(b=>{
+    const active=b===btn;
+    b.classList.toggle('active',active);
+    b.setAttribute('aria-pressed',String(active));
+  });
+  if(readingSession.mode==='full'){
+    $('fullView').classList.remove('hide');
+    $('cardView').classList.add('hide');
+    // نبدأ تجهيز الصوت في الخلفية؛ عند الضغط على التشغيل يكون غالبًا جاهزًا.
+    prepareFullAudio(false).catch(()=>{});
+    $('readAndAssessBtn').classList.remove('hide');
+  }else{
+    $('cardView').classList.remove('hide');
+    $('fullView').classList.add('hide');
+    $('readAndAssessBtn').classList.add('hide');
+  }
+  paintReadingLesson();
+}));
+$('diagBtn').onclick=()=>{ $('diag').innerHTML='جارٍ الفحص…'; $('diagDlg').showModal(); runDiag(); };
+
+$('recBtn').onclick = async ()=>{ readingRecordingState.index = readingLessonState.idx; await refreshRecSet(); renderWordRecording(); await refreshFullRecording(); $('recDlg').showModal(); };
+$('fRec').addEventListener('pointerdown', startFullRecording);
+$('fRec').addEventListener('pointerup', stopFullRecording);
+$('fRec').addEventListener('pointercancel', stopFullRecording);
+$('fRec').addEventListener('pointerleave', stopFullRecording);
+$('fPlay').onclick = playFullRecording;
+$('fDel').onclick = async ()=>{ await recDelete(FULL_TEXT_KEY); await refreshFullRecording(); };
+const wordRecordingButton = $('rRec');
+wordRecordingButton.addEventListener('pointerdown', startWordRecording);
+wordRecordingButton.addEventListener('pointerup', stopWordRecording);
+wordRecordingButton.addEventListener('pointercancel', stopWordRecording);
+wordRecordingButton.addEventListener('pointerleave', stopWordRecording);
+$('rPlay').onclick = ()=> { if(readingLessonState.words[readingRecordingState.index]) window.sanaReadingAudio.speak(readingLessonState.words[readingRecordingState.index],null,{source:'rec-preview',playWhenActive:false}); };
+$('rPrev').onclick = ()=>{ if(readingRecordingState.index>0){ readingRecordingState.index--; renderWordRecording(); } };
+$('rNext').onclick = ()=>{ if(readingRecordingState.index<readingLessonState.words.length-1){ readingRecordingState.index++; renderWordRecording(); } };
+$('rDel').onclick = async ()=>{ await recDelete(readingLessonState.words[readingRecordingState.index]); await refreshRecSet(); renderWordRecording(); };
+$('rExp').onclick = exportRecordings;
+$('rImp').onclick = ()=> $('rFile').click();
+$('rFile').onchange = e=>{ if(e.target.files[0]) importRecordings(e.target.files[0]); };
+
+$('voiceBtn').onclick=()=>{ $('voiceDlg').showModal(); };
+$('restartLessonBtn')?.addEventListener('click',restartReadingLesson);
+$('closeDlgBtn')?.addEventListener('click',()=>$('dlg').close());
+$('closeRecDlgBtn')?.addEventListener('click',()=>$('recDlg').close());
+$('testVoiceBtn')?.addEventListener('click',testVoice);
+$('closeVoiceDlgBtn')?.addEventListener('click',()=>$('voiceDlg').close());
+$('closeProgressDlgBtn')?.addEventListener('click',()=>$('progressDlg').close());
+$('closeDiagDlgBtn')?.addEventListener('click',()=>$('diagDlg').close());
+$('rateSel').oninput=e=>{ readingAudioSettings.rate=parseFloat(e.target.value); $('rateVal').textContent=readingAudioSettings.rate.toFixed(2); };
+document.querySelectorAll('[data-speed]').forEach(btn=>btn.addEventListener('click',()=>{const v=parseFloat(btn.dataset.speed);readingAudioSettings.rate=v;$('rateSel').value=v;$('rateVal').textContent=v.toFixed(2);}));
+$('noTash').onchange=e=>{ readingAudioSettings.stripTash=e.target.checked; invalidateFullAudioCache(); };
+$('azureVoiceSel').onchange=e=>{readingAudioSettings.azureVoice=e.target.value;saveAzureConfig();};
+
+$('pausePreset').onchange=e=>{readingSession.pausePreset=e.target.value;};
+loadAzureConfig();
+loadTexts();
+buildReadingLesson(sanaTextManager.current.text);
+$('reviewBtn').onclick=()=>{ $('win').classList.remove('show'); renderLessonMistakes(); const first=Object.keys(window.sanaReadingProgress.state.mistakes||{})[0]; if(first){const i=readingLessonState.words.findIndex(w=>norm(w)===first); if(i>=0){readingLessonState.idx=i;paintReadingLesson();}} };
+window.addEventListener('beforeunload',saveLessonProgress);
+restoreLessonProgress();
+renderLessonProgress();
+renderTextMeta();
+
+
+</script>
+<script src="reading-layout.js"></script>
+</body>
+</html>
