@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+
+
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport"/>
+<meta content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https:; worker-src 'self';" http-equiv="Content-Security-Policy"/>
+<title>مدرّب القراءة العربية — Sana Neural</title>
+<link href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;📖&lt;/text&gt;&lt;/svg&gt;" rel="icon"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&amp;family=Noto+Naskh+Arabic:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+
+
+
+
+
+
+<link href="reading.css" rel="stylesheet"/><script src="reading-app-config.js"></script><script src="sana-core.js"></script><script src="sana-progress.js"></script><script src="reading.js" type="module"></script>  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#ffffff">
+</head>
+<body>
+<div style="max-width:860px;margin:0 auto 10px;text-align:center">
+<button class="ghost" id="coachPanelsBtn" style="max-width:260px">📊 لوحة المتابعة (للأهل)</button>
+</div>
+<div class="coach-dashboard hide" id="coachDashboard">
+<div class="coach-grid">
+<div class="coach-stat"><b id="coachLessons">0</b><span>جلسات</span></div>
+<div class="coach-stat"><b id="coachWords">0</b><span>كلمات</span></div>
+<div class="coach-stat"><b id="coachBest">0%</b><span>أفضل دقة</span></div>
+</div>
+<div class="coach-actions">
+<button id="coachProgressBtn">📊 تقدمي</button>
+<button id="coachBackupBtn">💾 نسخة احتياطية</button>
+</div>
+<div class="coach-panel coach-hidden" id="coachProgressPanel">
+<h3>🎯 الكلمات التي تحتاج تدريبًا</h3>
+<div id="coachHardWords">لا توجد كلمات صعبة مسجلة بعد.</div>
+</div>
+</div>
+<div class="tools hide" id="toolsWrap">
+<div class="tools-grid">
+<button class="tools-btn" id="toolsListen">🎧 استماع</button>
+<button class="tools-btn" id="toolsReadAlong">🗣️ اقرأ معي</button>
+<button class="tools-btn" id="toolsPron">🎤 قيّم نطقي</button>
+<button class="tools-btn" id="toolsHard">🎯 نقاط ضعفي</button>
+<button class="tools-btn" id="toolsProgress">📊 تقدمي</button>
+<button class="tools-btn" id="toolsReport">📄 تقرير</button>
+</div>
+<div class="tools-panel hide" id="toolsPanel"></div>
+</div>
+<div class="child-intro" style="max-width:860px;margin:10px auto 8px;text-align:center;background:#fff;border:2px solid #d8e8f0;border-radius:22px;padding:12px 16px;box-shadow:0 8px 18px rgba(40,75,95,.07)"><div style="font-size:1.55rem">🌟 جاهزة للقراءة؟</div><div style="color:#6c7d86;font-size:.95rem">اسمعي أولًا 🔊 ثم اقرئي بهدوء 🎤 وخذي وقتك.</div></div><div id="v8ReadSection">
+<div class="wrap">
+<header>
+<h1>اقرئي <span>كلمة كلمة</span> 📖</h1>
+<div class="stats">
+<div class="pill">⭐ <span id="score">0</span></div>
+<div class="pill">📊 <span id="prog">0</span>%</div>
+</div>
+</header>
+<div class="banner hide" id="banner"></div>
+<div class="more-toggle-row" style="display:flex;justify-content:center;margin:6px 0 10px">
+<button class="ghost" id="moreToolsBtn" style="max-width:220px">⚙️ المزيد من الأدوات</button>
+</div>
+<div class="hide" id="moreToolsPanel">
+<div class="text-manager">
+<div class="inline">
+<select aria-label="النصوص المحفوظة" id="savedTextSel"></select>
+<button class="ghost" id="manageTextsBtn">📚 نصوصي</button>
+</div>
+<div class="saved-count" id="savedCount">لا توجد نصوص محفوظة</div>
+</div>
+<div class="top-actions">
+<button id="progressBtn">📊 تقدّمي</button>
+<button id="backupTextsBtn">⬇ نصوصي</button>
+<button id="shareBtn">📤 مشاركة</button>
+</div>
+<div class="text-meta" id="textMeta">—</div>
+<div class="row" style="margin-top:8px">
+<button class="ghost" id="recBtn">🎙 سجّل بصوتك</button>
+<button class="ghost" id="voiceBtn">⚙️ إعدادات الصوت</button>
+<button class="ghost" id="diagBtn">🩺 فحص</button>
+<button class="ghost" id="editBtn">✎ غيّري النص</button>
+</div>
+</div>
+<div class="card" id="cardView">
+<div class="counter">الكلمة <span id="cnow">1</span> من <span id="ctot">1</span></div>
+<div class="ghostw"><span id="prevw"></span></div>
+<div class="bigword" id="bigword">…</div>
+<div class="ghostw"><span id="nextw"></span></div>
+</div>
+<div class="sheet hide" id="fullView">
+<div id="text"></div>
+</div>
+<div class="bar" role="progressbar" aria-label="تقدّم القراءة" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="fill"></i></div>
+<div aria-label="وضع القراءة" class="mode-strip">
+<button class="active" data-mode="word">🔠 كلمة</button>
+<button data-mode="full">📖 النص كامل</button>
+</div>
+<div class="pause-bar">
+<button id="repeatBtn">🔁 أعد الكلمة</button>
+<button id="pauseBtn">⏸ إيقاف مؤقت</button>
+<button class="hide" id="readAndAssessBtn">🎤 اقرئي وقيّمي</button>
+</div>
+<div aria-live="polite" class="heard" id="heard">اضغطي 🔊 لتسمعي الكلمة، وبعدين 🎤 لتقرئيها.</div>
+<small class="note">🎧 Sana تقرأ لك — يمكنك التبديل بين كلمة/نص كامل، وإيقاف القراءة مؤقتًا أو إعادة الكلمة.</small>
+<div id="azureSecureStatus" style="margin-top:8px;font-size:.78rem;color:#2f8f5b;font-weight:700;text-align:center">☁️ Azure Neural: Sana — صوت تعليمي عبر Token</div>
+</div>
+<div class="mistakes" id="mistakesBox">
+<div class="mistakes-title">🎯 كلمات تحتاج تدريبًا</div>
+<div class="mistake-list" id="mistakeList"></div>
+</div>
+</div>
+<div id="v8ReadControlsWrap">
+<div class="controls">
+<div class="settings-hint" style="text-align:center;color:#6b7b83;font-size:.82rem;margin:0 0 8px">⚙️ إعدادات الصوت موجودة داخل «إعدادات الصوت» فقط</div>
+<div class="row">
+<button class="mic" id="micBtn">🎤 ابدئي القراءة</button>
+<button id="sayBtn">🔊 اسمعي</button>
+<button id="okBtn">✓ صح</button>
+</div>
+<div class="row">
+<button id="prevBtn">⏮ السابقة</button>
+<button id="nextBtn">⏭ التالية</button>
+</div>
+<div class="row">
+<button class="read" id="readBtn">📖 اقرأ لي النص</button>
+</div>
+<div class="row">
+<button class="ghost" id="resetBtn">↺ من البداية</button>
+</div>
+</div>
+</div>
+<div class="win" id="win">
+<div>
+<div style="font-size:4rem">🏆</div>
+<h2>أحسنتِ! خلّصتِ النص</h2>
+<div class="result-grid">
+<div class="result-box"><b id="resAccuracy">0%</b><span>الدقة</span></div>
+<div class="result-box"><b id="resTime">00:00</b><span>الوقت</span></div>
+<div class="result-box"><b id="resWords">0/0</b><span>الكلمات</span></div>
+</div>
+<p id="winMsg"></p>
+<button data-reading-action="restart" style="max-width:220px;margin:auto;background:#fff">↺ مرة ثانية</button>
+<button id="reviewBtn" style="max-width:220px;margin:8px auto 0;background:#fff">🎯 تدرب على الكلمات الصعبة</button>
+</div>
+</div>
+<dialog id="dlg">
+<h3 style="margin-top:0">📚 إدارة النصوص</h3>
+<label for="textName" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">اسم النص</label>
+<input id="textName" placeholder="اسم النص، مثل: درس المدرسة" type="text"/>
+<label for="ta" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">نص القراءة</label>
+<textarea id="ta" placeholder="اكتبي النص هنا..."></textarea>
+<div class="row" style="margin-top:10px">
+<button id="saveNewTextBtn">💾 حفظ كنص جديد</button>
+<button class="ghost" id="updateTextBtn">✏️ تحديث النص</button>
+<button class="ghost" id="deleteTextBtn">🗑 حذف</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button class="ghost" id="importTextsBtn">⬆ استرجاع نصوص</button>
+<button class="ghost" id="exportTextsBtn2">⬇ تصدير نصوص</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button class="ghost" id="useTextBtn">▶ استخدام النص</button>
+<button class="ghost" data-reading-action="close-dlg">إغلاق</button>
+</div>
+</dialog>
+<dialog id="recDlg">
+<h3 style="margin-top:0">🎙 سجّلي الكلمات بصوتك</h3>
+<p style="margin:0 0 8px;font-size:.85rem;color:#7b8085">
+    اضغطي مطوّلاً على الزر الأحمر واقرأي الكلمة، وارفعي إصبعك. بتنحفظ على هذا الجهاز.</p>
+<div style="background:#fff3cf;border:2px solid #f0b429;border-radius:14px;padding:10px;margin-bottom:10px;text-align:center">
+<div style="font-size:.85rem;font-weight:800">🎙 سجّلي النص كامل بمرة وحدة</div>
+<div style="font-size:.78rem;color:#8b7a3a;margin:2px 0 8px">اقرئي النص كله بصوتك الطبيعي — أفضل من كلمة كلمة</div>
+<div aria-live="polite" id="fState" style="font-size:.8rem;color:#8b9096;min-height:1.2em">— مش مسجّل</div>
+<div class="row" style="margin-top:6px">
+<button id="fRec" style="background:#e2725b;color:#fff;border-color:#a8442f;box-shadow:0 4px 0 #a8442f;flex:2">⏺ اضغطي واقرئي النص كامل</button>
+<button id="fPlay">▶ اسمعي</button>
+<button class="ghost" id="fDel">🗑</button>
+</div>
+</div>
+<div style="text-align:center;background:#fbf6e9;border-radius:14px;padding:10px;border:1px solid #e6dcc6">
+<div style="font-size:.78rem;color:#8b9096;font-weight:700">تسجيل كلمة كلمة (اختياري)</div>
+<div style="font-size:.8rem;color:#8b9096;font-weight:700">
+<span id="rNow">1</span> / <span id="rTot">1</span> — مسجّلة: <span id="rDone">0</span></div>
+<div id="rWord" style="font-family:var(--font-read);font-size:2.4rem;font-weight:700;padding:6px"></div>
+<div aria-live="polite" id="rState" style="font-size:.8rem;color:#8b9096;min-height:1.2em"></div>
+</div>
+<div class="row" style="margin-top:10px">
+<button id="rRec" style="background:#e2725b;color:#fff;border-color:#a8442f;box-shadow:0 4px 0 #a8442f;flex:2">⏺ اضغطي واقرأي</button>
+<button id="rPlay">▶ اسمعي</button>
+</div>
+<div class="row" style="margin-top:7px">
+<button class="ghost" id="rPrev">⏮ السابقة</button>
+<button class="ghost" id="rNext">⏭ التالية</button>
+<button class="ghost" id="rDel">🗑 امسحي</button>
+</div>
+<div class="row" style="margin-top:7px">
+<button class="ghost" id="rExp">⬇ نسخة احتياطية</button>
+<button class="ghost" id="rImp">⬆ استرجاع</button>
+<button class="ghost" data-reading-action="close-rec-dlg">تمام</button>
+</div>
+<input accept="application/json" id="rFile" style="display:none" type="file"/>
+<input accept="application/json" id="textsFile" style="display:none" type="file"/>
+</dialog>
+<dialog id="voiceDlg">
+<h3 style="margin-top:0">🎚 إعدادات الصوت</h3>
+<div class="set">
+<label for="azureVoiceSel">الصوت العربي</label>
+<select id="azureVoiceSel">
+<option value="ar-JO-SanaNeural">🇯🇴 Sana — أنثى أردنية</option>
+<option value="ar-JO-TaimNeural">🇯🇴 Taim — ذكر أردني</option>
+</select>
+<label for="azureRegion">منطقة Azure (Region)</label>
+<input id="azureRegion" readonly="" value="eastus"/>
+<div style="font-size:.78rem;color:#7b8085;background:#fff3cf;border:1px solid #f0b429;border-radius:10px;padding:8px;margin-top:8px">🔐 مفتاح Azure محفوظ داخل الخادم ولا يتم وضعه داخل GitHub.</div>
+<small style="display:block;color:#8b9096;margin-top:5px;line-height:1.5">🔐 للاستخدام المحلي فقط. لتطبيق منشور، ضع الاستدعاء في خادم وسيط ولا تضع المفتاح داخل الموقع.</small>
+<label for="rateSel">سرعة القراءة: <span id="rateVal">0.70</span></label>
+<input id="rateSel" max="1.1" min="0.4" step="0.05" type="range" value="0.7"/>
+<div class="row" style="margin-top:7px">
+<button class="ghost" data-speed="0.60" type="button">🐢 بطيء</button>
+<button class="ghost" data-speed="0.75" type="button">🙂 تعليمي</button>
+<button class="ghost" data-speed="0.90" type="button">📖 طبيعي</button>
+</div>
+<label for="pausePreset">نمط الوقفات</label>
+<select id="pausePreset">
+<option value="short">⚡ قصيرة</option>
+<option selected="" value="normal">🙂 طبيعية</option>
+<option value="long">🐢 طويلة</option>
+</select>
+<div class="chk"><input id="noTash" type="checkbox"/> <label for="noTash">انطق بدون تشكيل (جرّبيها إذا اللفظ غريب)</label></div>
+<div class="row" style="margin-top:12px">
+<button data-reading-action="test-voice">🔊 جرّبي الصوت</button>
+<button class="ghost" data-reading-action="close-voice-dlg">تمام</button>
+</div>
+</div>
+</dialog>
+<dialog id="progressDlg">
+<h3 style="margin-top:0">📊 تقدّمي</h3>
+<div class="progress-card">
+<h4 id="pTextName">النص الحالي</h4>
+<div class="progress-grid">
+<div class="prog-box"><b id="pAcc">0%</b><span>الدقة</span></div>
+<div class="prog-box"><b id="pBest">0</b><span>أفضل سلسلة</span></div>
+<div class="prog-box"><b id="pAttempts">0</b><span>المحاولات</span></div>
+<div class="prog-box"><b id="pWords">0</b><span>كلمات مقروءة</span></div>
+</div>
+<div class="history-list" id="historyList"></div>
+</div>
+<div class="row" style="margin-top:10px">
+<button id="exportProgressBtn">⬇ تصدير التقدم</button>
+<button class="ghost" data-reading-action="close-progress-dlg">تمام</button>
+</div>
+</dialog>
+<dialog id="diagDlg">
+<h3 style="margin-top:0">🩺 فحص الصوت والمايك</h3>
+<div aria-live="polite" id="diag">جارٍ الفحص…</div>
+<div class="row" style="margin-top:10px">
+<button data-reading-action="close-diag-dlg">تمام</button>
+</div>
+</dialog>
+
+
+
+
+  <script src="pwa-register.js"></script>
+</body>
+</html>
