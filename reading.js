@@ -253,18 +253,17 @@ const cfg = window.READING_APP_CONFIG || {};
     });
   }
 
-  async function runPron(){
-    // Read current sentence/word from the existing reading page.
+  async function runWordAssessment(){
     const ref = (document.getElementById('bigword')?.textContent || '').trim();
-    if(!ref){ showPanel("قيّم نطقي","لا توجد كلمة حالية."); return; }
+    if(!ref){ showPanel("تقييم القراءة","لا توجد كلمة حالية."); return; }
     if(ref.split(/\s+/).length > 1){
-      showPanel("قيّم نطقي","هذا الزر لتقييم كلمة واحدة. لتقييم النص كاملاً استخدم زر «🎤 اقرئي وقيّمي».");
+      showPanel("تقييم القراءة","اختاري وضع «📖 النص كامل» لتقييم النص كاملاً.");
       return;
     }
     showPanel("🎤 تقييم النطق", `<p>اقرأ: <strong>${SanaCore.escapeHtml(ref)}</strong></p><p>ابدأ الكلام الآن…</p>`);
     try{
       const r = await assessPronunciation(ref);
-      const score = Number(r.pa?.PronScore || r.pa?.AccuracyScore || 0);
+      const score = Number(r.pa?.AccuracyScore ?? 0);
       const heard = (r.result?.text || '').trim();
       const verdict = score >= 85 ? 'نطق ممتاز 🌟'
                     : score >= 70 ? 'جيد — كرّري الكلمة مرة أخرى'
@@ -278,7 +277,7 @@ const cfg = window.READING_APP_CONFIG || {};
         state.sessions += 1;
         state.words += 1;
         state.bestAccuracy = Math.max(state.bestAccuracy, score);
-        state.history.push({type:"pronunciation",at:new Date().toISOString(),word:ref,score});
+        state.history.push({type:"reading-word",at:new Date().toISOString(),word:ref,score});
         state.history = state.history.slice(-50);
         if(score < 85) state.hard[ref] = (state.hard[ref]||0)+1;
         persist();
@@ -288,11 +287,44 @@ const cfg = window.READING_APP_CONFIG || {};
     }
   }
 
+  function scoreFullTextAssessment(referenceText, recognizedText, wordScores, fullTextPa){
+    const referenceWords = String(referenceText || '').trim().split(/\s+/).filter(Boolean);
+    const spokenWords = String(recognizedText || '').trim().split(/\s+/).filter(Boolean);
+    const normWord = value => String(value || '').replace(/[\u064B-\u0652\u0670\u0640]/g,'')
+      .replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
+      .replace(/[^\u0621-\u064A0-9a-zA-Z]/g,'').trim();
+
+    // في continuous mode لا يدعم Azure EnableMiscue، لذلك نحسب اكتمال القراءة
+    // بمقارنة الكلمات التي سمعها Azure مع النص المرجعي.
+    const refNorm=referenceWords.map(normWord).filter(Boolean);
+    const spokenNorm=spokenWords.map(normWord).filter(Boolean);
+    const used=new Set();
+    let matched=0;
+    for(const spoken of spokenNorm){
+      let found=-1;
+      for(let i=0;i<refNorm.length;i++){
+        if(!used.has(i) && refNorm[i]===spoken){ found=i; break; }
+      }
+      if(found>=0){ used.add(found); matched++; }
+    }
+    const completeness = refNorm.length ? Math.round((matched/refNorm.length)*100) : 0;
+    const accuracy = wordScores.length
+      ? Math.round(wordScores.reduce((sum,w)=>sum+Number(w.score||0),0)/wordScores.length)
+      : Number(fullTextPa?.AccuracyScore ?? 0);
+    const azureOverall = Number(fullTextPa?.PronScore ?? 0);
+    const overall = azureOverall > 0
+      ? Math.round(azureOverall)
+      : Math.round(accuracy * (completeness/100));
+
+    const missing = referenceWords.filter((_,i)=>!used.has(i));
+    const weakWords = wordScores.filter(w => Number(w.score||0) < 70);
+    return {overall, accuracy, completeness, missing, weakWords, matched, referenceCount:refNorm.length};
+  }
+
   async function runFullTextPron(){
     const ref = words.join(' ').trim();
     if(!ref){ showPanel("تقييم القراءة","لا يوجد نص حالي."); return; }
 
-    // Stop any TTS/reading activity before opening the microphone.
     try{ if(typeof stopRead === 'function') stopRead(); }catch(e){}
 
     showPanel("🎤 تقييم قراءة النص الكامل",
@@ -304,6 +336,7 @@ const cfg = window.READING_APP_CONFIG || {};
     let stopping = false;
     let wordScores = [];
     let recognizedPieces = [];
+    let fullTextPa = null;
 
     const setLive = msg => {
       const el=document.getElementById('fullPronLive');
@@ -325,24 +358,30 @@ const cfg = window.READING_APP_CONFIG || {};
 
     const finishResult = () => {
       try{ rec && rec.close(); }catch(e){}
-      const avg = wordScores.length
-        ? Math.round(wordScores.reduce((a,w)=>a+w.score,0)/wordScores.length)
-        : 0;
-      const weakWords = wordScores.filter(w => w.score < 70);
+      const result=scoreFullTextAssessment(ref, recognizedPieces.join(' '), wordScores, fullTextPa);
+      const weakWords = result.weakWords;
+      const missingText = result.missing.length
+        ? `<p class="tools-small">كلمات لم تُسمع: ${SanaCore.escapeHtml(result.missing.join('، '))}</p>` : '';
       showPanel("نتيجة قراءة النص الكامل", `
-        <div class="tools-row"><strong>الدقة العامة</strong><strong>${avg}%</strong></div>
-        <div class="tools-meter"><i style="width:${Math.max(0,Math.min(100,avg))}%"></i></div>
+        <div class="tools-row"><strong>النتيجة العامة</strong><strong>${result.overall}%</strong></div>
+        <div class="tools-meter"><i style="width:${Math.max(0,Math.min(100,result.overall))}%"></i></div>
+        <div class="tools-row">
+          <span>دقة النطق: <b>${result.accuracy}%</b></span>
+          <span>اكتمال القراءة: <b>${result.completeness}%</b></span>
+        </div>
         <p class="tools-small">النص المسموع: ${SanaCore.escapeHtml(recognizedPieces.join(' ') || '—')}</p>
+        ${missingText}
         ${wordScores.length ? `<p class="tools-small">تم تقييم ${wordScores.length} كلمة.</p>` : `<p class="tools-small">لم يتم الحصول على درجات للكلمات.</p>`}
         ${weakWords.length ? `<h4>🎯 كلمات تحتاج تدريب</h4>
           <div>${weakWords.map(w=>`<span class="tools-chip">${SanaCore.escapeHtml(w.word)} (${Math.round(w.score)}%)</span>`).join('')}</div>` : ''}
       `);
       state.sessions += 1;
       state.words += wordScores.length;
-      state.bestAccuracy = Math.max(state.bestAccuracy, avg);
-      state.history.push({type:"reading-full",at:new Date().toISOString(),accuracy:avg,words:wordScores.length});
+      state.bestAccuracy = Math.max(state.bestAccuracy, result.overall);
+      state.history.push({type:"reading-full",at:new Date().toISOString(),accuracy:result.overall,words:wordScores.length,completeness:result.completeness});
       state.history = state.history.slice(-50);
       weakWords.forEach(w => { state.hard[w.word] = (state.hard[w.word]||0)+1; });
+      result.missing.forEach(w => { state.hard[w] = (state.hard[w]||0)+1; });
       persist();
     };
 
@@ -361,17 +400,17 @@ const cfg = window.READING_APP_CONFIG || {};
       const speechConfig = SDK.SpeechConfig.fromAuthorizationToken(
         t.token, t.region || cfg.REGION || "eastus"
       );
-      // STT/Pronunciation Assessment uses ar-SA; TTS voice remains unchanged.
       speechConfig.speechRecognitionLanguage = "ar-SA";
 
       const audioConfig = SDK.AudioConfig.fromDefaultMicrophoneInput();
       rec = new SDK.SpeechRecognizer(speechConfig, audioConfig);
 
+      // Continuous mode is used for long reading sessions; EnableMiscue is not supported here.
       const pac = new SDK.PronunciationAssessmentConfig(
         ref,
         SDK.PronunciationAssessmentGradingSystem.HundredMark,
         SDK.PronunciationAssessmentGranularity.Word,
-        true
+        false
       );
       pac.applyTo(rec);
 
@@ -389,7 +428,10 @@ const cfg = window.READING_APP_CONFIG || {};
           );
           const data=JSON.parse(json || '{}');
           console.log('Full-text pronunciation response:', data);
-          const wordsResult=data.NBest?.[0]?.Words || [];
+          const nbest=data.NBest?.[0] || {};
+          const pa=nbest.PronunciationAssessment || {};
+          if(pa.PronScore != null || pa.AccuracyScore != null) fullTextPa=pa;
+          const wordsResult=nbest.Words || [];
           if(e.result?.text) recognizedPieces.push(e.result.text);
           wordsResult.forEach(w=>{
             const wp=w.PronunciationAssessment;
@@ -409,9 +451,7 @@ const cfg = window.READING_APP_CONFIG || {};
         }
       };
 
-      rec.sessionStopped = () => {
-        console.log('Full-text pronunciation session stopped.');
-      };
+      rec.sessionStopped = () => console.log('Full-text pronunciation session stopped.');
 
       const btn=document.getElementById('stopFullPron');
       if(btn){ btn.disabled=false; btn.textContent='⏹ خلصت — قيّمي قراءتي'; btn.onclick=finishAssessment; }
@@ -434,6 +474,13 @@ const cfg = window.READING_APP_CONFIG || {};
 
   // Expose the function for the existing page-level button wiring.
   readingApi.runFullTextPron = runFullTextPron;
+  readingApi.runWordAssessment = runWordAssessment;
+
+  async function runReadingAssessment(){
+    if(readingMode === 'word') return runWordAssessment();
+    return runFullTextPron();
+  }
+  readingApi.runReadingAssessment = runReadingAssessment;
 
   function renderProgress(){
     const hard = Object.entries(state.hard).sort((a,b)=>b[1]-a[1]).slice(0,20);
@@ -475,8 +522,7 @@ const cfg = window.READING_APP_CONFIG || {};
     const btn=document.getElementById("readBtn"); if(btn) btn.click();
   });
 
-  document.getElementById("toolsPron")?.addEventListener("click",runPron);
-
+  
   // A result belongs to one word — drop it as soon as the child moves on.
   ["nextBtn","prevBtn","micBtn","readBtn","resetBtn"].forEach(id=>{
     document.getElementById(id)?.addEventListener("click",hidePanel);
@@ -1451,7 +1497,7 @@ $('coachPanelsBtn').onclick=()=>{
 $('exportProgressBtn').onclick=exportProgress;
 $('repeatBtn').onclick=repeatCurrentWord;
 $('pauseBtn').onclick=pauseReading;
-$('readAndAssessBtn').onclick=()=>{ if(typeof readingApi.runFullTextPron === 'function') readingApi.runFullTextPron(); };
+$('readAndAssessBtn').onclick=()=>{ if(typeof readingApi.runReadingAssessment === 'function') readingApi.runReadingAssessment(); };
 $('exportTextsBtn2').onclick=exportTexts;
 $('importTextsBtn').onclick=()=>$('textsFile').click();
 $('textsFile').onchange=e=>{if(e.target.files[0])importTexts(e.target.files[0]);};
@@ -1464,11 +1510,9 @@ document.querySelectorAll('[data-mode]').forEach(btn=>btn.addEventListener('clic
     $('cardView').classList.add('hide');
     // نبدأ تجهيز الصوت في الخلفية؛ عند الضغط على التشغيل يكون غالبًا جاهزًا.
     prepareFullAudio(false).catch(()=>{});
-    $('readAndAssessBtn').classList.remove('hide');
   }else{
     $('cardView').classList.remove('hide');
     $('fullView').classList.add('hide');
-    $('readAndAssessBtn').classList.add('hide');
   }
   paint();
 }));

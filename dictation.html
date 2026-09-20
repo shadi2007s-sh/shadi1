@@ -195,8 +195,6 @@ body[data-sana-device="phone"] dialog{
 </style>
 <script src="reading-app-config.js"></script>
 <script src="sana-core.js"></script>
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#ffffff">
 </head>
 <body>
 <div class="wrap">
@@ -373,7 +371,7 @@ function paint(){
 }
 
 function showDiff(a, b){
-  $('fb').innerHTML = diff(a,b).map(x=>'<i class="'+x.k+'">'+x.c+'</i>').join('');
+  $('fb').innerHTML = diff(a,b).map(x=>'<i class="'+x.k+'">'+SanaCore.escapeHtml(x.c)+'</i>').join('');
 }
 
 /* ===== التحقّق ===== */
@@ -385,7 +383,7 @@ function check(){
   if(typed === right){
     beep(880,.12); setTimeout(()=>beep(1320,.14),90);
     score++;
-    $('fb').innerHTML = '<i class="g">'+target()+'</i>';
+    $('fb').innerHTML = '<i class="g">'+SanaCore.escapeHtml(target())+'</i>';
     msg('✅ صح! أحسنتِ');
     if(sentenceMode || idx >= words.length-1){ idx = words.length; setTimeout(finish, 700); return; }
     idx++;
@@ -397,7 +395,7 @@ function check(){
   showDiff(typed, right);
   if(tries >= 3){
     if(!wrongs.includes(target())) wrongs.push(target());
-    msg('الكلمة الصحيحة: <b>'+target()+'</b> — الحروف الملوّنة هي الغلط.');
+    msg('الكلمة الصحيحة: <b>'+SanaCore.escapeHtml(target())+'</b> — الحروف الملوّنة هي الغلط.');
     if(sentenceMode || idx >= words.length-1){ idx = words.length; setTimeout(finish, 1800); return; }
     idx++;
     setTimeout(()=>{ paint(); say(target(), rate); }, 2200);
@@ -413,7 +411,7 @@ function finish(){
   $('wTitle').textContent = wrongs.length ? 'خلّصتِ! في كلمات بتحتاج تمرين' : 'ممتازة! كل الكلمات صح';
   $('wMsg').textContent = 'صح '+score+' من '+total;
   $('wList').innerHTML = wrongs.length
-    ? '<div style="font-weight:700;border:none">كلمات للتمرين:</div>' + wrongs.map(w=>'<div>• '+w+'</div>').join('')
+    ? '<div style="font-weight:700;border:none">كلمات للتمرين:</div>' + wrongs.map(w=>'<div>• '+SanaCore.escapeHtml(w)+'</div>').join('')
     : '';
   $('againWrong').style.display = wrongs.length ? '' : 'none';
   $('win').classList.add('show');
@@ -578,6 +576,5 @@ if(window.sanaTextSync?.onChange){
 }
 </script>
 
-  <script src="pwa-register.js"></script>
 </body>
 </html>

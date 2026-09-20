@@ -26,7 +26,7 @@ export function sim(a,b){
 export function accept(said,target){
   const t=norm(target), s=norm(said);
   if(!t) return true; if(!s) return false; if(s===t) return true;
-  if(t.length>3 && (s.includes(t)||t.includes(s))) return true;
+  if(t.length>3 && s.includes(t)) return true;
   const th = t.length<=3 ? .95 : (t.length<=5 ? .75 : .68);
   return sim(s,t) >= th;
 }

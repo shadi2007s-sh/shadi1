@@ -1,4 +1,5 @@
-const CACHE = 'sana-app-shell-v2';
+// Bump CACHE version on every deploy
+const CACHE = 'sana-app-shell-v3';
 const APP_SHELL = [
   './index.html',
   './reading.html',
@@ -38,14 +39,12 @@ self.addEventListener('fetch', event => {
   if(url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(request).then(cached =>
-      cached || fetch(request).then(response => {
-        if(response.ok){
-          const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put(request, copy));
-        }
-        return response;
-      }).catch(() => cached)
-    )
+    fetch(request).then(response => {
+      if(response.ok){
+        const copy = response.clone();
+        caches.open(CACHE).then(cache => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => caches.match(request))
   );
 });

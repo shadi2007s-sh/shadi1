@@ -6,7 +6,7 @@
 
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport"/>
-<meta content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https:; worker-src 'self';" http-equiv="Content-Security-Policy"/>
+<meta content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' https: wss://eastus.stt.speech.microsoft.com wss://eastus.tts.speech.microsoft.com; worker-src 'self';" http-equiv="Content-Security-Policy"/>
 <title>مدرّب القراءة العربية — Sana Neural</title>
 <link href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;📖&lt;/text&gt;&lt;/svg&gt;" rel="icon"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
@@ -44,7 +44,6 @@
 <div class="tools-grid">
 <button class="tools-btn" id="toolsListen">🎧 استماع</button>
 <button class="tools-btn" id="toolsReadAlong">🗣️ اقرأ معي</button>
-<button class="tools-btn" id="toolsPron">🎤 قيّم نطقي</button>
 <button class="tools-btn" id="toolsHard">🎯 نقاط ضعفي</button>
 <button class="tools-btn" id="toolsProgress">📊 تقدمي</button>
 <button class="tools-btn" id="toolsReport">📄 تقرير</button>
@@ -102,7 +101,7 @@
 <div class="pause-bar">
 <button id="repeatBtn">🔁 أعد الكلمة</button>
 <button id="pauseBtn">⏸ إيقاف مؤقت</button>
-<button class="hide" id="readAndAssessBtn">🎤 اقرئي وقيّمي</button>
+<button id="readAndAssessBtn">🎤 اقرئي وقيّمي</button>
 </div>
 <div aria-live="polite" class="heard" id="heard">اضغطي 🔊 لتسمعي الكلمة، وبعدين 🎤 لتقرئيها.</div>
 <small class="note">🎧 Sana تقرأ لك — يمكنك التبديل بين كلمة/نص كامل، وإيقاف القراءة مؤقتًا أو إعادة الكلمة.</small>
