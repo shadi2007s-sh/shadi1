@@ -9,6 +9,8 @@ window.READING_APP_CONFIG = window.READING_APP_CONFIG || {
   VOICE: 'ar-JO-SanaNeural',
   SDK_URL: 'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.46.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js',
   // أضف hash من أداة compute-sdk-sri عند تثبيت نسخة SDK للنشر. يظل فارغًا محليًا.
+  // Set this to the SHA-384 digest of the pinned SDK bundle before production deployment.
+  // Never insert an unverified hash: browsers will refuse to load the SDK.
   SDK_SRI: ''
 };
 
