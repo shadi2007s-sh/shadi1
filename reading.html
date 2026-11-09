@@ -94,17 +94,14 @@
 <div id="text"></div>
 </div>
 <div class="bar" role="progressbar" aria-label="تقدّم القراءة" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="fill"></i></div>
-<div aria-label="وضع القراءة" class="mode-strip">
-<button class="active" data-mode="word">🔠 كلمة</button>
-<button data-mode="full">📖 النص كامل</button>
-</div>
+
 <div class="pause-bar">
 <button id="repeatBtn">🔁 أعد الكلمة</button>
 <button id="pauseBtn">⏸ إيقاف مؤقت</button>
-<button id="readAndAssessBtn">🎤 اقرئي وقيّمي</button>
+
 </div>
-<div aria-live="polite" class="heard" id="heard">اضغطي 🔊 لتسمعي الكلمة، وبعدين 🎤 لتقرئيها.</div>
-<small class="note">🎧 Sana تقرأ لك — يمكنك التبديل بين كلمة/نص كامل، وإيقاف القراءة مؤقتًا أو إعادة الكلمة.</small>
+<div aria-live="polite" class="heard" id="heard">اضغطي 🎤 ثم اختاري كلمة واحدة أو النص كاملًا للتقييم.</div>
+<small class="note">🎧 ابدئي القراءة والتقييم واختاري كلمة واحدة أو النص كاملًا.</small>
 <div id="azureSecureStatus" style="margin-top:8px;font-size:.78rem;color:#2f8f5b;font-weight:700;text-align:center">☁️ Azure Neural: Sana — صوت تعليمي عبر Token</div>
 </div>
 <div class="mistakes" id="mistakesBox">
@@ -116,7 +113,7 @@
 <div class="controls">
 <div class="settings-hint" style="text-align:center;color:#6b7b83;font-size:.82rem;margin:0 0 8px">⚙️ إعدادات الصوت موجودة داخل «إعدادات الصوت» فقط</div>
 <div class="row">
-<button class="mic" id="micBtn">🎤 ابدئي القراءة</button>
+<button class="mic" id="micBtn">🎤 ابدئي القراءة والتقييم</button>
 <button id="sayBtn">🔊 اسمعي</button>
 <button id="okBtn">✓ صح</button>
 </div>
