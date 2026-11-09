@@ -10,6 +10,7 @@
   const SDK_TIMEOUT_MS = 15000;
 
   let tokenCache = null;
+  let tokenPromise = null;
   let tokenCachedAt = 0;
   let sdkPromise = null;
 
@@ -65,11 +66,14 @@
       return tokenCache;
     }
 
+    if(!force && tokenPromise) return tokenPromise;
+
     const url = String(CONFIG.TOKEN_ENDPOINT || '').trim();
     if(!url || url.includes('YOUR-FUNCTION-APP')){
       throw new Error('TOKEN_ENDPOINT_NOT_CONFIGURED');
     }
 
+    const requestToken = async () => {
     let response;
     try{
       response = await fetch(url, {
@@ -101,6 +105,11 @@
     tokenCache = data;
     tokenCachedAt = Date.now();
     return data;
+    };
+    const pending = requestToken();
+    tokenPromise = pending;
+    try { return await pending; }
+    finally { if(tokenPromise === pending) tokenPromise = null; }
   }
 
   function loadSdk(){
@@ -119,6 +128,7 @@
         settled = true;
         clearTimeout(timeout);
         if(error){
+          script.remove();
           sdkPromise = null;
           reject(error);
         }else{
