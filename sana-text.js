@@ -25,10 +25,15 @@ export function sim(a,b){
 
 export function accept(said,target){
   const t=norm(target), s=norm(said);
-  if(!t) return true; if(!s) return false; if(s===t) return true;
-  if(t.length>3 && s.includes(t)) return true;
-  const th = t.length<=3 ? .95 : (t.length<=5 ? .75 : .68);
-  return sim(s,t) >= th;
+  if(!t) return false;
+  if(!s) return false;
+  // Never treat a longer response containing the target as an exact reading.
+  // Short words must match exactly; longer words allow only a very small
+  // recognition tolerance, avoiding false positives in learning scores.
+  if(s===t) return true;
+  if(t.length<=5) return false;
+  const distance = Math.round((1-sim(s,t))*Math.max(s.length,t.length));
+  return distance<=1 && Math.abs(s.length-t.length)<=1;
 }
 
 export function diff(a,b){
