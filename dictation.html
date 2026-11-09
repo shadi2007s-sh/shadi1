@@ -328,7 +328,7 @@ async function say(t,r){
   try{
     if(azureSynth){ try{azureSynth.close();}catch(e){} azureSynth=null; }
     const got=await ensureAzureSynth(r); azureSynth=got.synth;
-    const ssml=`<speak version="1.0" xml:lang="ar-JO"><voice name="${window.DICTATION_APP_CONFIG.VOICE}"><prosody rate="${Math.round((got.rate-1)*100)}%">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}</prosody></voice></speak>`;
+    const ssml=`<speak version="1.0" xml:lang="ar-JO"><voice name="${window.DICTATION_APP_CONFIG.VOICE}"><prosody rate="${Math.round((got.rate-1)*100)}%">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}</prosody></voice></speak>`;
     await new Promise((resolve,reject)=>{
       got.synth.speakSsmlAsync(ssml,()=>{try{got.synth.close();}catch(e){} azureSynth=null; resolve();},err=>{try{got.synth.close();}catch(e){} azureSynth=null; reject(new Error(String(err||'Azure synthesis failed')));});
     });
