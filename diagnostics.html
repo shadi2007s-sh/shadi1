@@ -1079,7 +1079,7 @@ document.getElementById('copyBtn').addEventListener('click', async e => {
 
 refreshReport();
 runAll();
-if (window.initSanaNavigation) window.initSanaNavigation();
+if (window.initSanaNavigation && typeof window.initSanaNavigation.init === 'function') window.initSanaNavigation.init();
 </script>
 </body>
 </html>
