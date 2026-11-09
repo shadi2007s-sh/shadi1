@@ -328,26 +328,39 @@ const cfg = window.READING_APP_CONFIG || {};
     try{ if(typeof stopRead === 'function') stopRead(); }catch(e){}
 
     showPanel("🎤 تقييم قراءة النص الكامل",
-      `<p>اقرئي النص كاملاً بصوتك الآن. اضغطي "خلصت — قيّمي قراءتي" عندما تنتهين.</p>
-       <div id="fullPronLive" class="tools-small">جارٍ تجهيز المايك…</div>
-       <button class="tools-btn" id="stopFullPron" disabled>⏳ تجهيز الاستماع…</button>`);
+      `<p>اقرئي النص كاملاً. سأتوقف وأقيّم قراءتك تلقائيًا بعد 8 ثوانٍ من الصمت.</p>
+       <div id="fullPronLive" class="tools-small">جارٍ تجهيز المايك…</div>`);
 
     let rec = null;
     let stopping = false;
     let wordScores = [];
     let recognizedPieces = [];
     let fullTextPa = null;
+    let hasSpeech = false;
+    let autoFinishTimer = 0;
+    let noSpeechTimer = 0;
+    const AUTO_FINISH_SILENCE_MS = 8000;
 
     const setLive = msg => {
       const el=document.getElementById('fullPronLive');
       if(el) el.textContent=msg;
     };
 
+    const scheduleAutomaticFinish = () => {
+      clearTimeout(autoFinishTimer);
+      autoFinishTimer = setTimeout(() => {
+        if(stopping || !rec) return;
+        setLive('انتهى دورك في القراءة؛ جارٍ حساب النتيجة…');
+        finishAssessment();
+      }, AUTO_FINISH_SILENCE_MS);
+    };
+
     const finishAssessment = () => {
       if(stopping || !rec) return;
       stopping = true;
-      const btn=document.getElementById('stopFullPron');
-      if(btn){ btn.disabled=true; btn.textContent='⏳ جارٍ حساب النتيجة…'; }
+      clearTimeout(autoFinishTimer);
+      clearTimeout(noSpeechTimer);
+      setLive('جارٍ حساب النتيجة…');
       try{
         rec.stopContinuousRecognitionAsync(
           () => finishResult(),
@@ -357,7 +370,13 @@ const cfg = window.READING_APP_CONFIG || {};
     };
 
     const finishResult = () => {
+      clearTimeout(autoFinishTimer);
+      clearTimeout(noSpeechTimer);
       try{ rec && rec.close(); }catch(e){}
+      if(!recognizedPieces.length){
+        showPanel("لم أسمع قراءة واضحة","<p>تأكدي من عمل الميكروفون ثم حاولي قراءة النص مرة أخرى.</p>");
+        return;
+      }
       const result=scoreFullTextAssessment(ref, recognizedPieces.join(' '), wordScores, fullTextPa);
       const weakWords = result.weakWords;
       const missingText = result.missing.length
@@ -386,6 +405,9 @@ const cfg = window.READING_APP_CONFIG || {};
     };
 
     const finishError = err => {
+      stopping = true;
+      clearTimeout(autoFinishTimer);
+      clearTimeout(noSpeechTimer);
       try{ rec && rec.close(); }catch(e){}
       const msg = String(err?.message || err || 'تعذر إيقاف التقييم.');
       console.error('Full-text pronunciation stop error:', err);
@@ -416,6 +438,11 @@ const cfg = window.READING_APP_CONFIG || {};
 
       rec.recognizing = (s,e) => {
         try{
+          if(e.result?.text){
+            hasSpeech=true;
+            clearTimeout(autoFinishTimer);
+            clearTimeout(noSpeechTimer);
+          }
           const live=document.getElementById('fullPronLive');
           if(live && e.result?.text) live.textContent='أسمع: '+e.result.text;
         }catch(err){}
@@ -432,17 +459,24 @@ const cfg = window.READING_APP_CONFIG || {};
           const pa=nbest.PronunciationAssessment || {};
           if(pa.PronScore != null || pa.AccuracyScore != null) fullTextPa=pa;
           const wordsResult=nbest.Words || [];
-          if(e.result?.text) recognizedPieces.push(e.result.text);
+          if(e.result?.text){
+            hasSpeech=true;
+            clearTimeout(noSpeechTimer);
+            recognizedPieces.push(e.result.text);
+          }
           wordsResult.forEach(w=>{
             const wp=w.PronunciationAssessment;
             if(wp) wordScores.push({word:w.Word,score:Number(wp.AccuracyScore ?? 0)});
           });
           const live=document.getElementById('fullPronLive');
           if(live) live.textContent='سمعت حتى الآن: '+(recognizedPieces.join(' ')||'—');
+          if(e.result?.text) scheduleAutomaticFinish();
         }catch(err){ console.error('recognized handler error:',err); }
       };
 
       rec.canceled = (s,e) => {
+        clearTimeout(autoFinishTimer);
+        clearTimeout(noSpeechTimer);
         console.error('Full-text pronunciation canceled:', e);
         if(!stopping){
           stopping=true;
@@ -453,14 +487,18 @@ const cfg = window.READING_APP_CONFIG || {};
 
       rec.sessionStopped = () => console.log('Full-text pronunciation session stopped.');
 
-      const btn=document.getElementById('stopFullPron');
-      if(btn){ btn.disabled=false; btn.textContent='⏹ خلصت — قيّمي قراءتي'; btn.onclick=finishAssessment; }
-      setLive('🎙 اقرئي النص كاملاً الآن…');
+      setLive('🎙 اقرئي النص كاملاً الآن… سأتوقف تلقائيًا بعد 8 ثوانٍ من الصمت.');
+      noSpeechTimer = setTimeout(() => {
+        if(!hasSpeech) finishError(new Error('لم أسمع قراءة؛ تأكدي من الميكروفون ثم أعيدي المحاولة.'));
+      }, 30000);
 
       rec.startContinuousRecognitionAsync(
-        () => { setLive('🎙 أسمعك الآن… اقرئي النص كاملاً.'); },
+        () => { setLive('🎙 أسمعك الآن… اقرئي النص كاملاً. سأتوقف تلقائيًا بعد 8 ثوانٍ من الصمت.'); },
         err => {
           console.error('Full-text pronunciation start error:',err);
+          stopping=true;
+          clearTimeout(autoFinishTimer);
+          clearTimeout(noSpeechTimer);
           try{rec.close();}catch(x){}
           showPanel("تعذر التقييم", `<p>${SanaCore.escapeHtml(err?.message || err || 'تعذر تشغيل المايك.')}</p>`);
         }
@@ -476,11 +514,32 @@ const cfg = window.READING_APP_CONFIG || {};
   readingApi.runFullTextPron = runFullTextPron;
   readingApi.runWordAssessment = runWordAssessment;
 
-  async function runReadingAssessment(){
-    if(readingMode === 'word') return runWordAssessment();
-    return runFullTextPron();
+  function setAssessmentMode(mode){
+    const full = mode === 'full';
+    if(reading) stopRead();
+    readingMode = full ? 'full' : 'word';
+    document.getElementById('fullView')?.classList.toggle('hide', !full);
+    document.getElementById('cardView')?.classList.toggle('hide', full);
+    paint();
   }
-  readingApi.runReadingAssessment = runReadingAssessment;
+
+  function showAssessmentModeChooser(){
+    showPanel("اختاري طريقة القراءة والتقييم", `
+      <p>اختاري كيف تريدين القراءة:</p>
+      <div style="display:grid;gap:10px">
+        <button class="tools-btn" id="chooseWordAssessment">🔠 كلمة واحدة</button>
+        <button class="tools-btn" id="chooseFullAssessment">📖 النص كامل</button>
+      </div>`);
+    document.getElementById('chooseWordAssessment')?.addEventListener('click',()=>{
+      setAssessmentMode('word');
+      runWordAssessment();
+    });
+    document.getElementById('chooseFullAssessment')?.addEventListener('click',()=>{
+      setAssessmentMode('full');
+      runFullTextPron();
+    });
+  }
+  readingApi.runReadingAssessment = showAssessmentModeChooser;
 
   function renderProgress(){
     const hard = Object.entries(state.hard).sort((a,b)=>b[1]-a[1]).slice(0,20);
@@ -1460,11 +1519,7 @@ function shareCurrentText(){
 }
 function exportProgress(){ const payload={version:1,exportedAt:new Date().toISOString(),history:progressHistory, current:appState}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='reading-progress.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
 readingApi.getReadingReference=()=> readingMode==='full' ? words.join(' ') : (words[idx]||'');
-$('micBtn').onclick=async()=>{
-  if(listening){ stopMic(); say('⏹ توقّف الاستماع.'); return; }
-  stopRead();
-  await startMic();
-};
+
 $('sayBtn').onclick=()=>{ if(words[idx]){ stopRead(); azureSpeak(words[idx],null,{source:'single-word',playWhenActive:false}); } };
 $('okBtn').onclick=()=> idx<words.length && correct();
 $('prevBtn').onclick=()=>{ if(idx>0){ idx--; paint(); } };
@@ -1497,25 +1552,11 @@ $('coachPanelsBtn').onclick=()=>{
 $('exportProgressBtn').onclick=exportProgress;
 $('repeatBtn').onclick=repeatCurrentWord;
 $('pauseBtn').onclick=pauseReading;
-$('readAndAssessBtn').onclick=()=>{ if(typeof readingApi.runReadingAssessment === 'function') readingApi.runReadingAssessment(); };
+$('micBtn').onclick=()=>{ if(typeof readingApi.runReadingAssessment === 'function') readingApi.runReadingAssessment(); };
 $('exportTextsBtn2').onclick=exportTexts;
 $('importTextsBtn').onclick=()=>$('textsFile').click();
 $('textsFile').onchange=e=>{if(e.target.files[0])importTexts(e.target.files[0]);};
-document.querySelectorAll('[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{
-  if(reading) stopRead();
-  readingMode=btn.dataset.mode==='full' ? 'full' : 'word';
-  document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b===btn));
-  if(readingMode==='full'){
-    $('fullView').classList.remove('hide');
-    $('cardView').classList.add('hide');
-    // نبدأ تجهيز الصوت في الخلفية؛ عند الضغط على التشغيل يكون غالبًا جاهزًا.
-    prepareFullAudio(false).catch(()=>{});
-  }else{
-    $('cardView').classList.remove('hide');
-    $('fullView').classList.add('hide');
-  }
-  paint();
-}));
+
 $('diagBtn').onclick=()=>{ $('diag').textContent='جارٍ الفحص…'; $('diagDlg').showModal(); runDiag(); };
 let fmr=null, fmrChunks=[], fmrStream=null;
 async function refreshFull(){
