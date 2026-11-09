@@ -298,23 +298,29 @@ const cfg = window.READING_APP_CONFIG || {};
     // بمقارنة الكلمات التي سمعها Azure مع النص المرجعي.
     const refNorm=referenceWords.map(normWord).filter(Boolean);
     const spokenNorm=spokenWords.map(normWord).filter(Boolean);
-    const used=new Set();
-    let matched=0;
-    for(const spoken of spokenNorm){
-      let found=-1;
-      for(let i=0;i<refNorm.length;i++){
-        if(!used.has(i) && refNorm[i]===spoken){ found=i; break; }
-      }
-      if(found>=0){ used.add(found); matched++; }
+    // Sequence-aware alignment: words spoken out of order cannot receive
+    // full completeness credit. Count the longest common subsequence.
+    const m=refNorm.length,n=spokenNorm.length;
+    const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
+    for(let i=m-1;i>=0;i--) for(let j=n-1;j>=0;j--){
+      dp[i][j]=refNorm[i]===spokenNorm[j] ? 1+dp[i+1][j+1] : Math.max(dp[i+1][j],dp[i][j+1]);
     }
-    const completeness = refNorm.length ? Math.round((matched/refNorm.length)*100) : 0;
+    const used=new Set();
+    let i=0,j=0;
+    while(i<m && j<n){
+      if(refNorm[i]===spokenNorm[j]){used.add(i);i++;j++;}
+      else if(dp[i+1][j]>=dp[i][j+1]) i++;
+      else j++;
+    }
+    const matched=used.size;
+    const completeness=m ? Math.round(matched/m*100) : 0;
     const accuracy = wordScores.length
       ? Math.round(wordScores.reduce((sum,w)=>sum+Number(w.score||0),0)/wordScores.length)
       : Number(fullTextPa?.AccuracyScore ?? 0);
     const azureOverall = Number(fullTextPa?.PronScore ?? 0);
-    const overall = azureOverall > 0
-      ? Math.round(azureOverall)
-      : Math.round(accuracy * (completeness/100));
+    // An Azure pronunciation score must not hide omitted words.
+    const pronunciation = azureOverall > 0 ? azureOverall : accuracy;
+    const overall = Math.round(Math.max(0,Math.min(100,pronunciation)) * (completeness/100));
 
     const missing = referenceWords.filter((_,i)=>!used.has(i));
     const weakWords = wordScores.filter(w => Number(w.score||0) < 70);
@@ -746,7 +752,7 @@ function handleT(said){
   }else{
     heardEl.textContent='استمع…';
   }
-  if(accept(heard,target) || norm(heard).includes(norm(target))){
+  if(accept(heard,target)){
     score++;
     recordCorrect(target);
     $('bigword').classList.add('ok','pop');
