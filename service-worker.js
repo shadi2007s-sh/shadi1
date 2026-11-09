@@ -1,5 +1,5 @@
 // Bump CACHE version on every deploy
-const CACHE = 'sana-app-shell-v3';
+const CACHE = 'sana-app-shell-v4';
 const APP_SHELL = [
   './index.html',
   './reading.html',
@@ -13,8 +13,7 @@ const APP_SHELL = [
   './sana-text.js',
   './manifest.webmanifest',
   './pwa-register.js',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  // Icons are optional and must not block installation when absent.
 ];
 
 self.addEventListener('install', event => {
