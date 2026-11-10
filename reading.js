@@ -247,14 +247,17 @@ const cfg = window.READING_APP_CONFIG || {};
         if(settled) return;
         settled=true;
         clearTimeout(listenTimer);
-        try{rec.close();}catch(e){}
-        if(error){reject(error);return;}
+        if(error){try{rec.close();}catch(e){} reject(error);return;}
         try{
-          const json=result.properties.getProperty(SDK.PropertyId.SpeechServiceResponse_JsonResult);
+          const json=result?.properties?.getProperty(SDK.PropertyId.SpeechServiceResponse_JsonResult);
           const data=JSON.parse(json || "{}");
           const pa=data.NBest?.[0]?.PronunciationAssessment || {};
+          try{rec.close();}catch(e){}
           resolve({result,data,pa});
-        }catch(e){reject(e);}
+        }catch(e){
+          try{rec.close();}catch(closeError){}
+          reject(e);
+        }
       };
 
       rec.sessionStarted=()=>{
