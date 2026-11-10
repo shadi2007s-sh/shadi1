@@ -236,6 +236,10 @@ const cfg = window.READING_APP_CONFIG || {};
     );
     pac.applyTo(rec);
 
+    // Play the Arabic voice prompt before opening the microphone so it is not
+    // captured as the learner's answer.
+    await new Promise(resolve=>azureSpeak('ابدئي القراءة',resolve));
+
     return await new Promise((resolve, reject)=>{
       let settled=false;
       let listenTimer=0;
@@ -276,7 +280,7 @@ const cfg = window.READING_APP_CONFIG || {};
       showPanel("تقييم القراءة","اختاري وضع «📖 النص كامل» لتقييم النص كاملاً.");
       return;
     }
-    showPanel("🎤 تقييم النطق", `<p>جارٍ تجهيز الميكروفون والاتصال…</p><p>انتظري حتى تظهر رسالة «أسمعك الآن»، ثم اقرئي الكلمة.</p>`);
+    showPanel("🎤 تقييم النطق", `<p>جارٍ تجهيز الميكروفون والاتصال…</p><p>استمعي للتنبيه الصوتي، ثم اقرئي الكلمة عند ظهور «أسمعك الآن».</p>`);
     try{
       const r = await assessPronunciation(
         ref,
