@@ -675,15 +675,25 @@ const TextManager = {
     try{ this.list = JSON.parse(localStorage.getItem(this.STORAGE_KEY)||'[]'); if(!Array.isArray(this.list)) this.list=[]; }
     catch(e){ this.list=[]; }
     if(!this.list.length){ this.list=[{id:uid(), name:'النص الافتراضي', text: DEFAULT_TEXT}]; }
-    // Replace only the untouched built-in passage; keep the learner's saved custom texts.
-    const previousDefault=this.list.find(x=>x.text===PREVIOUS_DEFAULT_TEXT);
-    if(previousDefault) previousDefault.text=DEFAULT_TEXT;
+    // Update and select the built-in passage once; preserve other saved texts/selections.
+    let defaultEntry=this.list.find(x=>x.name==='النص الافتراضي');
+    let defaultChanged=false;
+    if(!defaultEntry){
+      defaultEntry=this.list.find(x=>x.text===PREVIOUS_DEFAULT_TEXT);
+      if(defaultEntry) defaultEntry.name='النص الافتراضي';
+      else{
+        defaultEntry={id:uid(), name:'النص الافتراضي', text:DEFAULT_TEXT};
+        this.list.unshift(defaultEntry);
+      }
+      defaultChanged=true;
+    }
+    if(defaultEntry.text!==DEFAULT_TEXT){
+      defaultEntry.text=DEFAULT_TEXT;
+      defaultChanged=true;
+    }
     let selected=''; try{ selected = localStorage.getItem(this.SELECTED_KEY)||''; }catch(e){}
-    this.current = this.list.find(x=>x.id===selected) || this.list[0];
-    try{
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.list));
-      window.sanaTextSync?.publish(this.current.text, {name:this.current.name, textId:this.current.id});
-    }catch(e){}
+    this.current = defaultChanged ? defaultEntry : (this.list.find(x=>x.id===selected) || defaultEntry || this.list[0]);
+    this.save();
   },
   save(){
     try{
