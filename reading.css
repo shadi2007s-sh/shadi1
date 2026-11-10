@@ -478,3 +478,27 @@ textarea:focus-visible,
     transition-duration:.01ms !important;
   }
 }
+
+
+/* Clear, high-visibility choices shown directly below the microphone button. */
+.assessment-mode-chooser{
+  margin:12px 0;padding:16px;background:#f3fbff;border:3px solid #3b9ed0;
+  border-radius:18px;box-shadow:0 6px 18px rgba(29,93,125,.15);text-align:center
+}
+.assessment-mode-chooser h3{margin:0 0 4px;color:#183d52;font-size:1.15rem}
+.assessment-mode-chooser p{margin:0 0 12px;color:#425b68}
+.assessment-mode-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.assessment-mode-options button{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  min-height:88px;padding:12px;background:#fff;border:2px solid #2586b6;border-radius:14px;
+  color:#17394b;box-shadow:0 3px 0 #2586b6;font:inherit;cursor:pointer
+}
+.assessment-mode-options button:hover,.assessment-mode-options button:focus-visible{
+  background:#e6f6ff;outline:3px solid #f0b429;outline-offset:2px
+}
+.assessment-mode-options button strong{font-size:1.05rem}
+.assessment-mode-options button span{font-size:.88rem;line-height:1.4}
+@media(max-width:520px){
+  .assessment-mode-options{grid-template-columns:1fr}
+  .assessment-mode-options button{min-height:76px}
+}
