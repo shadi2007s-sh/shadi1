@@ -1458,6 +1458,16 @@ const TextManager = {
     try{ this.list = JSON.parse(localStorage.getItem(this.STORAGE_KEY)||'[]'); if(!Array.isArray(this.list)) this.list=[]; }
     catch(e){ this.list=[]; }
     if(!this.list.length){ this.list=[{id:uid(), name:'النص الافتراضي', text: DEFAULT_TEXT}]; }
+    const params = new URLSearchParams(window.location.search);
+    const sharedText = (params.get('shareText') || '').trim();
+    if(sharedText){
+      const sharedName = (params.get('shareName') || 'نص مشترك').trim() || 'نص مشترك';
+      const existing = this.list.find(x=>x.name===sharedName && x.text===sharedText);
+      this.current = existing || {id:uid(), name:sharedName, text:sharedText};
+      if(!existing) this.list.push(this.current);
+      this.save();
+      return;
+    }
     let selected=''; try{ selected = localStorage.getItem(this.SELECTED_KEY)||''; }catch(e){}
     this.current = this.list.find(x=>x.id===selected) || this.list[0];
     try{
@@ -2359,8 +2369,18 @@ async function importTexts(file){
   }catch(e){say('❌ ملف النصوص غير صالح.');}
 }
 function shareCurrentText(){
-  const text=`${TextManager.current.name}\n\n${TextManager.current.text}`;
-  if(navigator.share){navigator.share({title:TextManager.current.name||'نص قراءة',text}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>say('📋 تم نسخ النص للمشاركة.')).catch(()=>say('انسخي النص من إدارة النصوص.'));}else say('📋 انسخي النص من إدارة النصوص لمشاركته.');
+  const shareUrl = new URL(window.location.href);
+  shareUrl.searchParams.set('shareText', TextManager.current.text || '');
+  shareUrl.searchParams.set('shareName', TextManager.current.name || 'نص مشترك');
+  const url = shareUrl.toString();
+  const title = TextManager.current.name || 'نص قراءة';
+  if(navigator.share){
+    navigator.share({title, text:'افتحي هذا الرابط لقراءة النص وتقييمه:', url}).catch(()=>{});
+  }else if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>say('🔗 تم نسخ رابط النص للمشاركة.')).catch(()=>window.prompt('انسخي الرابط لإرساله:',url));
+  }else{
+    window.prompt('انسخي الرابط لإرساله:',url);
+  }
 }
 function exportProgress(){ const payload={version:1,exportedAt:new Date().toISOString(),history:progressHistory, current:appState}; const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='reading-progress.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
 window.getReadingReference=()=> readingMode==='full' ? words.join(' ') : (words[idx]||'');
