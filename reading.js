@@ -221,7 +221,7 @@ const cfg = window.READING_APP_CONFIG || {};
   }
   function hidePanel(){ panel.classList.add("hide"); }
 
-  async function assessPronunciation(referenceText){
+  async function assessPronunciation(referenceText,onReady){
     const SDK = await SanaCore.loadSdk();
     const t = await SanaCore.getToken();
     const speechConfig = SDK.SpeechConfig.fromAuthorizationToken(t.token, t.region || cfg.REGION || "eastus");
@@ -237,6 +237,7 @@ const cfg = window.READING_APP_CONFIG || {};
     pac.applyTo(rec);
 
     return await new Promise((resolve, reject)=>{
+      if(typeof onReady === 'function') onReady();
       rec.recognizeOnceAsync(result=>{
         try{
           const json = result.properties.getProperty(
@@ -261,9 +262,9 @@ const cfg = window.READING_APP_CONFIG || {};
       showPanel("تقييم القراءة","اختاري وضع «📖 النص كامل» لتقييم النص كاملاً.");
       return;
     }
-    showPanel("🎤 تقييم النطق", `<p>اقرأ: <strong>${SanaCore.escapeHtml(ref)}</strong></p><p>ابدأ الكلام الآن…</p>`);
+    showPanel("🎤 تقييم النطق", `<p>جارٍ تجهيز الميكروفون والاتصال…</p><p>انتظري حتى تظهر رسالة «أسمعك الآن»، ثم اقرئي الكلمة.</p>`);
     try{
-      const r = await assessPronunciation(ref);
+      const r = await assessPronunciation(ref,()=>showPanel("🎤 تقييم النطق", `<p>اقرئي: <strong>${SanaCore.escapeHtml(ref)}</strong></p><p>🎙 أسمعك الآن… اقرئي الكلمة.</p>`));
       const score = Number(r.pa?.AccuracyScore ?? 0);
       const heard = (r.result?.text || '').trim();
       const verdict = score >= 85 ? 'نطق ممتاز 🌟'
