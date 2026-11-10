@@ -1,5 +1,5 @@
 // Bump CACHE version on every deploy
-const CACHE = 'sana-app-shell-v11';
+const CACHE = 'sana-app-shell-v12';
 const APP_SHELL = [
   './index.html',
   './reading.html',
