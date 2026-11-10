@@ -656,7 +656,8 @@ function azureConfigured(){
 }
 const gAudio = new Audio();
 
-const DEFAULT_TEXT = "تدوينُ رؤوسِ الأقلامِ إحدى التقنياتِ التي دعتِ الحاجةُ إليها، نظرًا لكثرةِ وسائلِ الاتصالِ، فلمَ لا تبادرُ إلى استخدامِ هذه التقنية في دراسِتك؟";
+const PREVIOUS_DEFAULT_TEXT = "تدوينُ رؤوسِ الأقلامِ إحدى التقنياتِ التي دعتِ الحاجةُ إليها، نظرًا لكثرةِ وسائلِ الاتصالِ، فلمَ لا تبادرُ إلى استخدامِ هذه التقنية في دراسِتك؟";
+const DEFAULT_TEXT = "تَعُدُّ اللُّغَةُ العَرَبِيَّةُ رَكِيزَةً فِكْرِيَّةً وَتُرَاثِيَّةً خَالِدَةً تُعَبِّرُ عَنْ هُوِيَّةِ الأُمَّةِ؛ لِذَلِكَ أَدْرَكَ الطُّلَّابُ أَهَمِّيَّتَهَا العَظِيمَةَ، فَاكْتَسَبُوا مَهَارَاتٍ لُغَوِيَّةً عَالِيَةً، وَكَتَبُوا مَقَالَاتٍ رَائِعَةً بِدِقَّةٍ. ثُمَّ جَلَسُوا فِي نَدْوَةٍ عِلْمِيَّةٍ وَنَاقَشُوا قَضَايَا الفِكْرِ بِوُضُوحٍ وَعُمْقٍ، فَلَمْ يُهْمِلُوا أُصُولَ لُغَتِهِمْ، بَلْ سَعَوْا لِإِحْيَائِهَا، وَلَنْ يَتَنَازَلُوا عَنْ هَذَا المَجْدِ العَظِيمِ.";
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let words=[], idx=0, score=0, listening=false, rec=null;
 let reading=false;
@@ -674,9 +675,13 @@ const TextManager = {
     try{ this.list = JSON.parse(localStorage.getItem(this.STORAGE_KEY)||'[]'); if(!Array.isArray(this.list)) this.list=[]; }
     catch(e){ this.list=[]; }
     if(!this.list.length){ this.list=[{id:uid(), name:'النص الافتراضي', text: DEFAULT_TEXT}]; }
+    // Replace only the untouched built-in passage; keep the learner's saved custom texts.
+    const previousDefault=this.list.find(x=>x.text===PREVIOUS_DEFAULT_TEXT);
+    if(previousDefault) previousDefault.text=DEFAULT_TEXT;
     let selected=''; try{ selected = localStorage.getItem(this.SELECTED_KEY)||''; }catch(e){}
     this.current = this.list.find(x=>x.id===selected) || this.list[0];
     try{
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.list));
       window.sanaTextSync?.publish(this.current.text, {name:this.current.name, textId:this.current.id});
     }catch(e){}
   },
