@@ -537,21 +537,21 @@ const cfg = window.READING_APP_CONFIG || {};
   }
 
   function showAssessmentModeChooser(){
-    showPanel("اختاري طريقة القراءة والتقييم", `
-      <p>اختاري كيف تريدين القراءة:</p>
-      <div style="display:grid;gap:10px">
-        <button class="tools-btn" id="chooseWordAssessment">🔠 كلمة واحدة</button>
-        <button class="tools-btn" id="chooseFullAssessment">📖 النص كامل</button>
-      </div>`);
-    document.getElementById('chooseWordAssessment')?.addEventListener('click',()=>{
-      setAssessmentMode('word');
-      runWordAssessment();
-    });
-    document.getElementById('chooseFullAssessment')?.addEventListener('click',()=>{
-      setAssessmentMode('full');
-      runFullTextPron();
-    });
+    const chooser=document.getElementById('assessmentModeChooser');
+    if(!chooser) return;
+    chooser.classList.remove('hide');
+    chooser.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
+  document.getElementById('chooseWordAssessment')?.addEventListener('click',()=>{
+    document.getElementById('assessmentModeChooser')?.classList.add('hide');
+    setAssessmentMode('word');
+    runWordAssessment();
+  });
+  document.getElementById('chooseFullAssessment')?.addEventListener('click',()=>{
+    document.getElementById('assessmentModeChooser')?.classList.add('hide');
+    setAssessmentMode('full');
+    runFullTextPron();
+  });
   readingApi.runReadingAssessment = showAssessmentModeChooser;
 
   function renderProgress(){
