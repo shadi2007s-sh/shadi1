@@ -221,7 +221,7 @@ const cfg = window.READING_APP_CONFIG || {};
   }
   function hidePanel(){ panel.classList.add("hide"); }
 
-  async function assessPronunciation(referenceText,onReady,onProgress){
+  async function assessPronunciation(referenceText){
     const SDK = await SanaCore.loadSdk();
     const t = await SanaCore.getToken();
     const speechConfig = SDK.SpeechConfig.fromAuthorizationToken(t.token, t.region || cfg.REGION || "eastus");
@@ -236,44 +236,21 @@ const cfg = window.READING_APP_CONFIG || {};
     );
     pac.applyTo(rec);
 
-    // Play the Arabic voice prompt before opening the microphone so it is not
-    // captured as the learner's answer.
-    await new Promise(resolve=>azureSpeak('ابدئي القراءة',resolve));
-
     return await new Promise((resolve, reject)=>{
-      let settled=false;
-      let listenTimer=0;
-      const finish=(error,result)=>{
-        if(settled) return;
-        settled=true;
-        clearTimeout(listenTimer);
-        if(error){try{rec.close();}catch(e){} reject(error);return;}
+      rec.recognizeOnceAsync(result=>{
         try{
-          const json=result?.properties?.getProperty(SDK.PropertyId.SpeechServiceResponse_JsonResult);
-          const data=JSON.parse(json || "{}");
-          const pa=data.NBest?.[0]?.PronunciationAssessment || {};
-          try{rec.close();}catch(e){}
-          resolve({result,data,pa});
-        }catch(e){
-          try{rec.close();}catch(closeError){}
-          reject(e);
-        }
-      };
-
-      rec.sessionStarted=()=>{
-        if(typeof onReady==='function') onReady();
-        listenTimer=setTimeout(()=>{
-          finish(new Error('لم أسمع الكلمة. أعيدي المحاولة واقرئي بعد ظهور رسالة الاستعداد.'));
-        },20000);
-      };
-      rec.recognizing=(s,e)=>{
-        const heard=String(e.result?.text || '').trim();
-        if(heard && typeof onProgress==='function') onProgress(heard);
-      };
-      rec.recognizeOnceAsync(
-        result=>finish(null,result),
-        err=>finish(new Error(err?.message || String(err)))
-      );
+          const json = result.properties.getProperty(
+            SDK.PropertyId.SpeechServiceResponse_JsonResult
+          );
+          const data = JSON.parse(json || "{}");
+          const pa = data.NBest?.[0]?.PronunciationAssessment || {};
+          resolve({result, data, pa});
+        }catch(e){ reject(e); }
+        finally { rec.close(); }
+      }, err=>{
+        try{ rec.close(); }catch(e){}
+        reject(new Error(err?.toString?.() || "Pronunciation assessment failed"));
+      });
     });
   }
   async function runWordAssessment(){
@@ -283,13 +260,9 @@ const cfg = window.READING_APP_CONFIG || {};
       showPanel("تقييم القراءة","اختاري وضع «📖 النص كامل» لتقييم النص كاملاً.");
       return;
     }
-    showPanel("🎤 تقييم النطق", `<p>جارٍ تجهيز الميكروفون والاتصال…</p><p>استمعي للتنبيه الصوتي، ثم اقرئي الكلمة عند ظهور «أسمعك الآن».</p>`);
+    showPanel("🎤 تقييم النطق", `<p>اقرئي: <strong>${SanaCore.escapeHtml(ref)}</strong></p><p>ابدئي الكلام الآن…</p>`);
     try{
-      const r = await assessPronunciation(
-        ref,
-        ()=>showPanel("🎤 تقييم النطق", `<p>اقرئي: <strong>${SanaCore.escapeHtml(ref)}</strong></p><p id="wordPronLive">🎙 أسمعك الآن… اقرئي الكلمة.</p>`),
-        heard=>{const live=document.getElementById('wordPronLive');if(live)live.textContent='🎙 أسمعك: '+heard;}
-      );
+      const r = await assessPronunciation(ref);
       const score = Number(r.pa?.AccuracyScore ?? 0);
       const heard = (r.result?.text || '').trim();
       const verdict = score >= 85 ? 'نطق ممتاز 🌟'
