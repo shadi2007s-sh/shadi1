@@ -295,31 +295,43 @@ const cfg = window.READING_APP_CONFIG || {};
       .replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
       .replace(/[^\u0621-\u064A0-9a-zA-Z]/g,'').trim();
 
-    // في continuous mode لا يدعم Azure EnableMiscue، لذلك نحسب اكتمال القراءة
-    // بمقارنة الكلمات التي سمعها Azure مع النص المرجعي.
-    const refNorm=referenceWords.map(normWord).filter(Boolean);
-    const spokenNorm=spokenWords.map(normWord).filter(Boolean);
-    const used=new Set();
-    let matched=0;
-    for(const spoken of spokenNorm){
-      let found=-1;
-      for(let i=0;i<refNorm.length;i++){
-        if(!used.has(i) && refNorm[i]===spoken){ found=i; break; }
+    const refNorm=referenceWords.map(normWord);
+    const spokenNorm=spokenWords.map(normWord);
+
+    // Match in order so repeated or rearranged words do not count as a complete reading.
+    const rows=refNorm.length+1, cols=spokenNorm.length+1;
+    const lcs=Array.from({length:rows},()=>Array(cols).fill(0));
+    for(let i=refNorm.length-1;i>=0;i--){
+      for(let j=spokenNorm.length-1;j>=0;j--){
+        lcs[i][j]=refNorm[i] && refNorm[i]===spokenNorm[j]
+          ? 1+lcs[i+1][j+1]
+          : Math.max(lcs[i+1][j],lcs[i][j+1]);
       }
-      if(found>=0){ used.add(found); matched++; }
     }
-    const completeness = refNorm.length ? Math.round((matched/refNorm.length)*100) : 0;
-    const accuracy = wordScores.length
+    const used=new Set();
+    let i=0, j=0;
+    while(i<refNorm.length && j<spokenNorm.length){
+      if(refNorm[i] && refNorm[i]===spokenNorm[j]){
+        used.add(i); i++; j++;
+      }else if(lcs[i+1][j]>=lcs[i][j+1]){
+        i++;
+      }else{
+        j++;
+      }
+    }
+
+    const matched=used.size;
+    const completeness=refNorm.length ? Math.round((matched/refNorm.length)*100) : 0;
+    const accuracy=wordScores.length
       ? Math.round(wordScores.reduce((sum,w)=>sum+Number(w.score||0),0)/wordScores.length)
       : Number(fullTextPa?.AccuracyScore ?? 0);
-    const azureOverall = Number(fullTextPa?.PronScore ?? 0);
-    const overall = azureOverall > 0
-      ? Math.round(azureOverall)
-      : Math.round(accuracy * (completeness/100));
+    // Continuous Azure scoring can score the words it heard while the learner skips
+    // part of the reference. Make the displayed overall score reflect both dimensions.
+    const overall=Math.round(accuracy*(completeness/100));
 
-    const missing = referenceWords.filter((_,i)=>!used.has(i));
-    const weakWords = wordScores.filter(w => Number(w.score||0) < 70);
-    return {overall, accuracy, completeness, missing, weakWords, matched, referenceCount:refNorm.length};
+    const missing=referenceWords.filter((_,index)=>!used.has(index));
+    const weakWords=wordScores.filter(w=>Number(w.score||0)<70);
+    return {overall,accuracy,completeness,missing,weakWords,matched,referenceCount:refNorm.length};
   }
 
   async function runFullTextPron(){
