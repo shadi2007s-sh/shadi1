@@ -232,13 +232,12 @@ const cfg = window.READING_APP_CONFIG || {};
       referenceText,
       SDK.PronunciationAssessmentGradingSystem.HundredMark,
       SDK.PronunciationAssessmentGranularity.Word,
-      false
+      true
     );
     pac.applyTo(rec);
 
     return await new Promise((resolve, reject)=>{
       let settled=false;
-      let stopping=false;
       let listenTimer=0;
       const finish=(error,result)=>{
         if(settled) return;
@@ -254,36 +253,18 @@ const cfg = window.READING_APP_CONFIG || {};
         }catch(e){reject(e);}
       };
 
+      rec.sessionStarted=()=>{
+        if(typeof onReady==='function') onReady();
+        listenTimer=setTimeout(()=>{
+          finish(new Error('لم أسمع الكلمة. أعيدي المحاولة واقرئي بعد ظهور رسالة الاستعداد.'));
+        },20000);
+      };
       rec.recognizing=(s,e)=>{
         const heard=String(e.result?.text || '').trim();
         if(heard && typeof onProgress==='function') onProgress(heard);
       };
-      rec.recognized=(s,e)=>{
-        const result=e.result;
-        if(!result?.text || stopping) return;
-        stopping=true;
-        rec.stopContinuousRecognitionAsync(
-          ()=>finish(null,result),
-          err=>finish(new Error(err?.message || String(err)),result)
-        );
-      };
-      rec.canceled=(s,e)=>{
-        finish(new Error(e.errorDetails || 'تم إيقاف الاستماع قبل اكتمال القراءة.'));
-      };
-      rec.sessionStopped=()=>{
-        if(!settled && !stopping) finish(new Error('انتهى الاستماع قبل التعرّف على الكلمة. حاولي مرة أخرى.'));
-      };
-
-      rec.startContinuousRecognitionAsync(
-        ()=>{
-          if(typeof onReady==='function') onReady();
-          listenTimer=setTimeout(()=>{
-            if(settled) return;
-            stopping=true;
-            const error=new Error('لم أسمع الكلمة. تأكدي من قربك من الميكروفون ثم حاولي مرة أخرى.');
-            rec.stopContinuousRecognitionAsync(()=>finish(error),()=>finish(error));
-          },20000);
-        },
+      rec.recognizeOnceAsync(
+        result=>finish(null,result),
         err=>finish(new Error(err?.message || String(err)))
       );
     });
