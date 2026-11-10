@@ -341,7 +341,7 @@ const cfg = window.READING_APP_CONFIG || {};
     try{ if(typeof stopRead === 'function') stopRead(); }catch(e){}
 
     showPanel("🎤 تقييم قراءة النص الكامل",
-      `<p>اقرئي النص كاملاً. سأتوقف وأقيّم قراءتك تلقائيًا بعد 8 ثوانٍ من الصمت.</p>
+      `<p>اقرئي النص كاملاً. سأتوقف وأقيّم قراءتك تلقائيًا بعد 3 ثوانٍ من الصمت.</p>
        <div id="fullPronLive" class="tools-small">جارٍ تجهيز المايك…</div>`);
 
     let rec = null;
@@ -352,7 +352,7 @@ const cfg = window.READING_APP_CONFIG || {};
     let hasSpeech = false;
     let autoFinishTimer = 0;
     let noSpeechTimer = 0;
-    const AUTO_FINISH_SILENCE_MS = 8000;
+    const AUTO_FINISH_SILENCE_MS = 3000;
 
     const setLive = msg => {
       const el=document.getElementById('fullPronLive');
@@ -500,13 +500,13 @@ const cfg = window.READING_APP_CONFIG || {};
 
       rec.sessionStopped = () => console.log('Full-text pronunciation session stopped.');
 
-      setLive('🎙 اقرئي النص كاملاً الآن… سأتوقف تلقائيًا بعد 8 ثوانٍ من الصمت.');
+      setLive('🎙 اقرئي النص كاملاً الآن… سأتوقف تلقائيًا بعد 3 ثوانٍ من الصمت.');
       noSpeechTimer = setTimeout(() => {
         if(!hasSpeech) finishError(new Error('لم أسمع قراءة؛ تأكدي من الميكروفون ثم أعيدي المحاولة.'));
       }, 30000);
 
       rec.startContinuousRecognitionAsync(
-        () => { setLive('🎙 أسمعك الآن… اقرئي النص كاملاً. سأتوقف تلقائيًا بعد 8 ثوانٍ من الصمت.'); },
+        () => { setLive('🎙 أسمعك الآن… اقرئي النص كاملاً. سأتوقف تلقائيًا بعد 3 ثوانٍ من الصمت.'); },
         err => {
           console.error('Full-text pronunciation start error:',err);
           stopping=true;
