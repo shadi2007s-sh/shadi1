@@ -287,7 +287,6 @@ section > h2 .tally{
   <section>
     <h2>التقرير الكامل</h2>
     <div style="padding:14px 16px">
-      <label for="report" class="sr-only">تقرير الفحص</label>
       <textarea id="report" readonly spellcheck="false"></textarea>
     </div>
   </section>
@@ -307,17 +306,8 @@ function pushLog(level, message, where){
   const div = document.createElement('div');
   div.className = 'logline ' + level;
   const time = new Date().toLocaleTimeString('en-GB');
-  const when = document.createElement('span');
-  when.className = 'when';
-  when.textContent = time;
-  div.appendChild(when);
-  div.appendChild(document.createTextNode(entry.message));
-  if(entry.where){
-    const whereEl = document.createElement('span');
-    whereEl.className = 'where';
-    whereEl.textContent = entry.where;
-    div.appendChild(whereEl);
-  }
+  div.innerHTML = '<span class="when">' + time + '</span>' + esc(entry.message) +
+    (entry.where ? '<span class="where">' + esc(entry.where) + '</span>' : '');
   logEl.appendChild(div);
   logEl.scrollTop = logEl.scrollHeight;
   document.getElementById('tallyLog').textContent = errorLog.length;
@@ -387,11 +377,7 @@ function setCheck(id, state, detail, value, fix){
       fixEl.className = 'fix';
       c.el.querySelector('.body').appendChild(fixEl);
     }
-    fixEl.textContent = '';
-    const fixTitle = document.createElement('b');
-    fixTitle.textContent = 'ما العمل';
-    fixEl.appendChild(fixTitle);
-    fixEl.appendChild(document.createTextNode(fix));
+    fixEl.innerHTML = '<b>ما العمل</b>' + esc(fix);
   } else if(fixEl){ fixEl.remove(); }
   updateTallies();
   refreshReport();
@@ -492,6 +478,7 @@ const CONFIG = window.READING_APP_CONFIG || {
   VOICE:'ar-JO-SanaNeural',
   SDK_URL:'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@1.46.0/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js'
 };
+let cachedToken = null;
 
 /* ============================================================
    6. THE CHECKS
@@ -799,21 +786,37 @@ async function testAutoplay(){
   }
 }
 
-
+async function getToken(force){
+  if(cachedToken && !force) return cachedToken;
+  const url = CONFIG.TOKEN_ENDPOINT;
+  if(!url || url.includes('YOUR-FUNCTION-APP')) throw new Error('TOKEN_ENDPOINT غير مضبوط في الإعدادات.');
+  let res;
+  try {
+    res = await fetch(url, { cache:'no-store', headers:{ Accept:'application/json' } });
+  } catch(err){
+    throw new Error('تعذّر الوصول إلى الخادم (شبكة أو CORS).');
+  }
+  if(!res.ok) throw new Error('الخادم ردّ بالرمز ' + res.status);
+  let data;
+  try { data = await res.json(); } catch(_){ throw new Error('الرد ليس JSON صالحًا.'); }
+  if(!data.token) throw new Error('الرد لا يحتوي على token.');
+  cachedToken = data;
+  return data;
+}
 
 async function checkToken(){
   setCheck('tokenEndpoint','busy','جارٍ الاتصال…','—');
   const started = Date.now();
   try {
-    const t = await window.sanaSpeech.getToken(true);
+    const t = await getToken(true);
     const ms = Date.now() - started;
     setCheck('tokenEndpoint','pass',
       'المنطقة: ' + (t.region || CONFIG.REGION) + ' · الصوت: ' + (t.voice || CONFIG.VOICE),
       ms + ' ms');
   } catch(err){
-    setCheck('tokenEndpoint','fail', window.sanaSpeech.errorMessage(err), 'فشل',
+    setCheck('tokenEndpoint','fail', err.message, 'فشل',
       'بدون هذا الخادم لا يعمل النطق ولا التعرّف. تحقّق أن Azure Function تعمل، وأن CORS يسمح لنطاق هذه الصفحة، وأن التفويض Anonymous.');
-    pushLog('error','فشل خادم المفاتيح: ' + window.sanaSpeech.errorMessage(err),'checkToken');
+    pushLog('error','فشل خادم المفاتيح: ' + err.message,'checkToken');
   }
 }
 
@@ -825,19 +828,26 @@ async function checkSdk(){
   }
   const started = Date.now();
   try {
-    await window.sanaSpeech.loadSdk();
-    setCheck('sdkLoad','pass','تم التحميل.',(Date.now()-started)+' ms');
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = CONFIG.SDK_URL; s.async = true; s.crossOrigin = 'anonymous';
+      const to = setTimeout(() => reject(new Error('انتهت المهلة بعد 15 ثانية.')), 15000);
+      s.onload = () => { clearTimeout(to); window.SpeechSDK ? resolve() : reject(new Error('حُمّلت لكن SpeechSDK غير موجود.')); };
+      s.onerror = () => { clearTimeout(to); reject(new Error('تعذّر تحميل المكتبة من CDN.')); };
+      document.head.appendChild(s);
+    });
+    setCheck('sdkLoad','pass','تم التحميل.', (Date.now()-started) + ' ms');
   } catch(err){
-    setCheck('sdkLoad','fail',window.sanaSpeech.errorMessage(err),'فشل',
+    setCheck('sdkLoad','fail', err.message, 'فشل',
       'تحقّق من الإنترنت، ومن أن جدار الحماية أو فلتر الشبكة لا يحجب cdn.jsdelivr.net. تقييم النطق لن يعمل بدونها.');
-    pushLog('error','فشل تحميل Azure SDK: '+window.sanaSpeech.errorMessage(err),'checkSdk');
+    pushLog('error','فشل تحميل Azure SDK: ' + err.message,'checkSdk');
   }
 }
 
 async function testTts(){
   setCheck('ttsTest','busy','جارٍ التوليد…','—');
   try {
-    const t = await window.sanaSpeech.getToken(false);
+    const t = await getToken(false);
     const region = (t.region || CONFIG.REGION || 'eastus').trim().toLowerCase();
     const voice = t.voice || CONFIG.VOICE || 'ar-JO-SanaNeural';
     const ssml = '<?xml version="1.0" encoding="utf-8"?><speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ar-JO"><voice name="' + voice + '">مرحبًا، هذا اختبار للصوت.</voice></speak>';
@@ -932,7 +942,7 @@ async function testStt(){
   }
 
   try {
-    const t = await window.sanaSpeech.getToken(false);
+    const t = await getToken(false);
     const region = (t.region || CONFIG.REGION || 'eastus').trim().toLowerCase();
     const url = 'https://' + region + '.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=ar-SA&format=detailed';
     const res = await fetch(url, {

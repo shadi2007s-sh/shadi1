@@ -136,109 +136,55 @@ window.initSanaDeviceDetection = window.initSanaDeviceDetection || (() => {
   return window.READING_APP_CONFIG.DEVICE;
 })();
 
-window.sanaSpeech = window.sanaSpeech || (() => {
-  const cfg = window.READING_APP_CONFIG;
-  let sdkPromise = null;
-  let tokenCache = null;
-  let tokenExpiresAt = 0;
-  let region = String(cfg.REGION || 'eastus').trim().toLowerCase();
-  let voice = String(cfg.VOICE || 'ar-JO-SanaNeural');
+/* ============================================================
+ * مزامنة النص المشترك بين القراءة والإملاء
+ * القراءة هي المصدر الرئيسي، والإملاء يستقبل آخر نص مختار تلقائيًا.
+ * ============================================================ */
+window.READING_APP_CONFIG.SHARED_TEXT_KEY =
+  window.READING_APP_CONFIG.SHARED_TEXT_KEY || 'sana_current_learning_text_v1';
 
-  const ERROR_MESSAGES = {
-    TOKEN_NETWORK_OR_CORS:'تعذر الوصول إلى خادم Token. تحقق من الإنترنت وCORS في Azure.',
-    TOKEN_HTTP_400:'Token: الطلب مرفوض (400).',
-    TOKEN_HTTP_401:'Token: رفض الطلب 401. تأكد أن Function Authorization = Anonymous.',
-    TOKEN_HTTP_403:'Token: رفض الطلب 403. راجع صلاحيات Function/CORS.',
-    TOKEN_HTTP_404:'Token: الرابط غير صحيح (404).',
-    TOKEN_HTTP_429:'Token: تم تجاوز الحد مؤقتًا (429).',
-    TOKEN_HTTP_500:'Token: حدث خطأ داخلي في الخادم (500).',
-    TOKEN_MISSING:'Token: الخادم لم يُرجع Speech token.',
-    TOKEN_BAD_JSON:'Token: الاستجابة ليست JSON صحيحة.',
-    SDK_LOAD_FAILED:'Speech SDK: تعذر تحميل المكتبة.',
-    SDK_LOAD_TIMEOUT:'Speech SDK: التحميل استغرق وقتًا طويلًا.',
-    SDK_LOAD_EMPTY:'Speech SDK: تم التحميل لكن SpeechSDK غير موجود.',
-    TTS_HTTP_400:'Azure TTS: الطلب مرفوض (400).',
-    TTS_HTTP_401:'Azure TTS: التوكن غير صالح أو المنطقة غير مطابقة (401).',
-    TTS_HTTP_403:'Azure TTS: رفضت الخدمة الطلب (403).',
-    TTS_HTTP_404:'Azure TTS: نقطة الخدمة غير صحيحة (404).',
-    TTS_HTTP_429:'Azure TTS: تم تجاوز الحد مؤقتًا (429).',
-    TTS_NETWORK_OR_CORS:'Azure TTS: تعذر الوصول إلى خدمة الصوت (شبكة/CORS).',
-    TTS_EMPTY_AUDIO:'Azure TTS: لم يصل ملف صوتي.',
-    STT_HTTP_400:'Azure STT: الطلب مرفوض (400).',
-    STT_HTTP_401:'Azure STT: التوكن غير صالح أو المنطقة غير مطابقة (401).',
-    STT_HTTP_403:'Azure STT: رفضت الخدمة الطلب (403).',
-    STT_HTTP_404:'Azure STT: نقطة الخدمة غير صحيحة (404).',
-    STT_HTTP_429:'Azure STT: تم تجاوز الحد مؤقتًا (429).',
-    STT_BAD_JSON:'Azure STT: الاستجابة ليست JSON صحيحة.',
-    AUDIO_PLAY_BLOCKED:'المتصفح منع تشغيل الصوت. اضغط زر تشغيل الصوت مرة أخرى.',
-    AUDIO_PLAY_FAILED:'تعذر تشغيل ملف الصوت.',
-    MIC_UNSUPPORTED:'الميكروفون غير مدعوم في هذا المتصفح.',
-    RECORDER_UNSUPPORTED:'تسجيل الصوت غير مدعوم في هذا المتصفح.'
-  };
+window.sanaTextSync = window.sanaTextSync || (() => {
+  const KEY = window.READING_APP_CONFIG.SHARED_TEXT_KEY;
+  const listeners = new Set();
 
-  function syncSpeechConfig(data){
-    region = String(data?.region || cfg.REGION || region || 'eastus').trim().toLowerCase();
-    voice = String(data?.voice || cfg.VOICE || voice || 'ar-JO-SanaNeural');
-    cfg.REGION = region;
-    cfg.VOICE = voice;
-  }
-
-  async function loadSdk(){
-    if(window.SpeechSDK) return window.SpeechSDK;
-    if(sdkPromise) return sdkPromise;
-    const url = cfg.SDK_URL;
-    if(!url) throw new Error('SDK_LOAD_FAILED');
-    sdkPromise = new Promise((resolve,reject)=>{
-      const s=document.createElement('script');
-      s.src=url;
-      s.async=true;
-      s.crossOrigin='anonymous';
-      const to=setTimeout(()=>reject(new Error('SDK_LOAD_TIMEOUT')),15000);
-      s.onload=()=>{
-        clearTimeout(to);
-        window.SpeechSDK ? resolve(window.SpeechSDK) : reject(new Error('SDK_LOAD_EMPTY'));
-      };
-      s.onerror=()=>{
-        clearTimeout(to);
-        reject(new Error('SDK_LOAD_FAILED'));
-      };
-      document.head.appendChild(s);
-    }).catch(e=>{ sdkPromise=null; throw e; });
-    return sdkPromise;
-  }
-
-  async function getToken(force=false){
-    const now=Date.now();
-    if(!force && tokenCache && now < tokenExpiresAt - 60000) return tokenCache;
-    const url=cfg.TOKEN_ENDPOINT;
-    if(!url || String(url).includes('YOUR-FUNCTION-APP')) throw new Error('TOKEN_MISSING');
-    let res;
+  function get(){
     try{
-      res=await fetch(url,{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
+      const raw = localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : null;
     }catch(e){
-      throw new Error('TOKEN_NETWORK_OR_CORS');
+      return null;
     }
-    if(!res.ok) throw new Error('TOKEN_HTTP_'+res.status);
-    let data;
-    try{ data=await res.json(); }catch(e){ throw new Error('TOKEN_BAD_JSON'); }
-    if(!data?.token) throw new Error('TOKEN_MISSING');
-    syncSpeechConfig(data);
-    tokenCache=data;
-    tokenExpiresAt=Date.now()+9*60*1000;
-    return data;
   }
 
-  function clearToken(){ tokenCache=null; tokenExpiresAt=0; }
-  function errorMessage(e){
-    const code=String(e?.message || e || '');
-    return ERROR_MESSAGES[code] || code || 'تعذر تشغيل Azure.';
+  function publish(text, meta={}){
+    const value = String(text || '').trim();
+    if(!value) return;
+    const payload = {
+      text: value,
+      name: String(meta.name || 'النص الحالي'),
+      textId: String(meta.textId || ''),
+      updatedAt: new Date().toISOString()
+    };
+    try{ localStorage.setItem(KEY, JSON.stringify(payload)); }catch(e){}
+    listeners.forEach(fn => { try{ fn(payload); }catch(e){} });
   }
-  function getRegion(){ return region; }
-  function getVoice(){ return voice; }
 
-  return Object.freeze({ loadSdk, getToken, clearToken, errorMessage, getRegion, getVoice, errors:ERROR_MESSAGES });
+  function onChange(fn){
+    if(typeof fn !== 'function') return () => {};
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  }
+
+  window.addEventListener('storage', e => {
+    if(e.key !== KEY || !e.newValue) return;
+    try{
+      const payload = JSON.parse(e.newValue);
+      listeners.forEach(fn => { try{ fn(payload); }catch(err){} });
+    }catch(err){}
+  });
+
+  return Object.freeze({ KEY, get, publish, onChange });
 })();
-
 
 /* ============================================================
  * التنقل المركزي بين صفحات التطبيق

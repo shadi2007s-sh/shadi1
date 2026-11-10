@@ -193,10 +193,24 @@ body[data-sana-device="phone"] dialog{
 }
 
 </style>
-<script src="sana-common.js"></script>
 <script src="reading-app-config.js"></script>
 
-</head>
+<script>window.__azureSdkPromise=null;
+window.loadAzureSdk=function(){
+  if(window.SpeechSDK) return Promise.resolve(window.SpeechSDK);
+  if(window.__azureSdkPromise) return window.__azureSdkPromise;
+  window.__azureSdkPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=window.DICTATION_APP_CONFIG.SDK_URL;
+    s.async=true;
+    s.onload=()=>window.SpeechSDK?resolve(window.SpeechSDK):reject(new Error('SDK did not initialize'));
+    s.onerror=()=>reject(new Error('Speech SDK load failed'));
+    document.head.appendChild(s);
+    setTimeout(()=>reject(new Error('Speech SDK load timeout')),15000);
+  });
+  return window.__azureSdkPromise;
+};
+</script></head>
 <body>
 <div class="wrap">
 <header>
@@ -207,14 +221,13 @@ body[data-sana-device="phone"] dialog{
 </div>
 </header>
 <div class="modes">
-<button class="act" id="mKb" aria-pressed="true">⌨️ لوحة</button>
-<button id="mTile" aria-pressed="false">🔤 حروف</button>
-<button id="mDraw" aria-pressed="false">✍️ بالإصبع</button>
+<button class="act" id="mKb">⌨️ لوحة</button>
+<button id="mTile">🔤 حروف</button>
+<button id="mDraw">✍️ بالإصبع</button>
 </div>
 <div class="card">
 <div class="counter">الكلمة <span id="cnow">1</span> من <span id="ctot">1</span></div>
 <div class="slots" id="slots"></div>
-<label for="ans" class="sr-only">إجابة الكلمة</label>
 <input autocomplete="off" autocorrect="off" dir="rtl" id="ans" placeholder="اكتبي الكلمة هنا" spellcheck="false" type="text"/>
 <div class="hide" id="tileWrap">
 <div id="tileBox"></div>
@@ -266,25 +279,29 @@ body[data-sana-device="phone"] dialog{
 </div>
 </div>
 </div>
-<dialog id="dlg" aria-labelledby="dictationDialogTitle">
-<h3 id="dictationDialogTitle" style="margin-top:0">غيّري النص</h3>
-<label for="ta" class="sr-only">النص المخصص للإملاء</label>
+<dialog id="dlg">
+<h3 style="margin-top:0">غيّري النص</h3>
 <textarea id="ta"></textarea>
 <div class="row" style="margin-top:10px">
-<button id="applyTextBtn">حفظ وابدأ</button>
-<button class="ghost" id="closeDictDlgBtn">إلغاء</button>
+<button onclick="applyText()">حفظ وابدأ</button>
+<button class="ghost" onclick="document.getElementById('dlg').close()">إلغاء</button>
 </div>
 </dialog>
 <script>
 const DEFAULT_TEXT = "تدوينُ رؤوسِ الأقلامِ إحدى التقنياتِ التي دعتِ الحاجةُ إليها، نظرًا لكثرةِ وسائلِ الاتصالِ، فلمَ لا تبادرُ إلى استخدامِ هذه التقنية في دراسِتك؟";
-window.$ = window.$ || function(id){ return document.getElementById(id); };
+const $ = id => document.getElementById(id);
 
 let words = [], idx = 0, score = 0, tries = 0, wrongs = [], sentenceMode = false, rate = 0.9;
 let mode = 'kb', tileStr = '';
 const LETTERS = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي','أ','إ','آ','ء','ؤ','ئ','ة','ى','ال'];
 
 /* مفتاح التسجيلات: نفس تطبيع صفحة القراءة */
-const keyNorm = window.sanaUtils.normalizeArabicKey;
+function keyNorm(s){
+  return (s||"").replace(/[\u064B-\u0652\u0670\u0640]/g,"")
+    .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه")
+    .replace(/ؤ/g,"و").replace(/ئ/g,"ي")
+    .replace(/[^\u0621-\u064A0-9a-zA-Z]/g,"").trim();
+}
 /* تدقيق الإملاء: نشيل التشكيل والترقيم فقط — الهمزات والتاء المربوطة تفرق */
 function spellNorm(s){
   return (s||"").replace(/[\u064B-\u0652\u0670\u0640]/g,"")
@@ -293,15 +310,39 @@ function spellNorm(s){
 
 /* ===== الصوت: تسجيلاتك أولاً، بعدها صوت الجهاز ===== */
 const recAudio = new Audio();
-const recGet = w => window.sanaRecordings.get(w, keyNorm);
-let azureAudio=null; let azureSynth=null;
-
+function idb(){
+  return new Promise((res,rej)=>{
+    const r = indexedDB.open('readingRecs',1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore('recs');
+    r.onsuccess = ()=> res(r.result);
+    r.onerror = ()=> rej(r.error);
+  });
+}
+async function recGet(w){
+  try{ const d=await idb(); return await new Promise(res=>{
+    const q=d.transaction('recs').objectStore('recs').get(keyNorm(w));
+    q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }catch(e){ return null; }
+}
+function arVoice(){
+  const vs = speechSynthesis.getVoices();
+  return vs.find(v=>/^ar/i.test(v.lang)) || vs.find(v=>/arab/i.test(v.name)) || null;
+}
+let azureAudio=null; let azureToken=null; let azureTokenAt=0; let azureSynth=null;
+async function getAzureToken(){
+  const cfg=window.DICTATION_APP_CONFIG;
+  if(azureToken && (Date.now()-azureTokenAt)<8*60*1000) return azureToken;
+  const res=await fetch(cfg.TOKEN_ENDPOINT,{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
+  if(!res.ok) throw new Error('Token HTTP '+res.status);
+  const data=await res.json();
+  if(!data.token) throw new Error('Token response missing token');
+  azureToken=data.token; azureTokenAt=Date.now();
+  return azureToken;
+}
 async function ensureAzureSynth(rate){
-  const SDK=await window.sanaSpeech.loadSdk();
-  const tokenData=await window.sanaSpeech.getToken(false);
-  const token=tokenData.token;
-  const cfg=SDK.SpeechConfig.fromAuthorizationToken(token, tokenData.region || window.DICTATION_APP_CONFIG.REGION);
-  cfg.speechSynthesisVoiceName=tokenData.voice || window.DICTATION_APP_CONFIG.VOICE;
+  const SDK=await window.loadAzureSdk();
+  const token=await getAzureToken();
+  const cfg=SDK.SpeechConfig.fromAuthorizationToken(token, window.DICTATION_APP_CONFIG.REGION);
+  cfg.speechSynthesisVoiceName=window.DICTATION_APP_CONFIG.VOICE;
   cfg.speechSynthesisLanguage='ar-JO';
   const rr=Math.max(0.5,Math.min(1.3,Number(rate)||0.75));
   const audio=SDK.AudioConfig.fromDefaultSpeakerOutput();
@@ -320,11 +361,21 @@ async function say(t,r){
       got.synth.speakSsmlAsync(ssml,()=>{try{got.synth.close();}catch(e){} azureSynth=null; resolve();},err=>{try{got.synth.close();}catch(e){} azureSynth=null; reject(new Error(String(err||'Azure synthesis failed')));});
     });
   }catch(e){
-    msg('⚠️ لم يعمل صوت Sana: '+window.sanaUtils.escapeHtml(window.sanaSpeech.errorMessage(e)));
+    msg('⚠️ لم يعمل صوت Sana: '+(e?.message||e));
     console.error(e);
   }
 }
 
+let ac;
+function beep(f,d){
+  try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain(); o.frequency.value=f;
+    g.gain.setValueAtTime(.001,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.22,ac.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);
+    o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+d);
+  }catch(e){}
+}
 
 /* ===== العرض ===== */
 function msg(h){ $('msg').innerHTML = h; }
@@ -364,7 +415,7 @@ function diff(a, b){   // a = المكتوب، b = الصحيح
   return out;
 }
 function showDiff(a, b){
-  $('fb').innerHTML = diff(a,b).map(x=>'<i class="'+x.k+'">'+window.sanaUtils.escapeHtml(x.c)+'</i>').join('');
+  $('fb').innerHTML = diff(a,b).map(x=>'<i class="'+x.k+'">'+x.c+'</i>').join('');
 }
 
 /* ===== التحقّق ===== */
@@ -374,9 +425,9 @@ function check(){
   const right = spellNorm(target());
   if(!typed){ msg('اكتبي الكلمة أول 🙂'); return; }
   if(typed === right){
-    window.sanaUtils.beep(880,.12); setTimeout(()=>window.sanaUtils.beep(1320,.14),90);
+    beep(880,.12); setTimeout(()=>beep(1320,.14),90);
     score++;
-    $('fb').innerHTML = '<i class="g">'+window.sanaUtils.escapeHtml(target())+'</i>';
+    $('fb').innerHTML = '<i class="g">'+target()+'</i>';
     msg('✅ صح! أحسنتِ');
     if(sentenceMode || idx >= words.length-1){ idx = words.length; setTimeout(finish, 700); return; }
     idx++;
@@ -384,11 +435,11 @@ function check(){
     return;
   }
   tries++;
-  window.sanaUtils.beep(220,.18);
+  beep(220,.18);
   showDiff(typed, right);
   if(tries >= 3){
     if(!wrongs.includes(target())) wrongs.push(target());
-    msg('الكلمة الصحيحة: <b>'+window.sanaUtils.escapeHtml(target())+'</b> — الحروف الملوّنة هي الغلط.');
+    msg('الكلمة الصحيحة: <b>'+target()+'</b> — الحروف الملوّنة هي الغلط.');
     if(sentenceMode || idx >= words.length-1){ idx = words.length; setTimeout(finish, 1800); return; }
     idx++;
     setTimeout(()=>{ paint(); say(target(), rate); }, 2200);
@@ -404,12 +455,20 @@ function finish(){
   $('wTitle').textContent = wrongs.length ? 'خلّصتِ! في كلمات بتحتاج تمرين' : 'ممتازة! كل الكلمات صح';
   $('wMsg').textContent = 'صح '+score+' من '+total;
   $('wList').innerHTML = wrongs.length
-    ? '<div style="font-weight:700;border:none">كلمات للتمرين:</div>' + wrongs.map(w=>'<div>• '+window.sanaUtils.escapeHtml(w)+'</div>').join('')
+    ? '<div style="font-weight:700;border:none">كلمات للتمرين:</div>' + wrongs.map(w=>'<div>• '+w+'</div>').join('')
     : '';
   $('againWrong').style.display = wrongs.length ? '' : 'none';
   $('win').classList.add('show');
-  if(!wrongs.length){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>window.sanaUtils.beep(f,.25),i*140));
-    window.sanaEffects.confetti(50); }
+  if(!wrongs.length){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.25),i*140));
+    for(let i=0;i<50;i++) confetti(); }
+}
+function confetti(){
+  const c=document.createElement('div'); c.className='confetti';
+  c.style.left=Math.random()*100+'vw';
+  c.style.background=['#e2725b','#f0b429','#2f8f5b','#5aa9d6','#fff'][Math.floor(Math.random()*5)];
+  document.body.appendChild(c);
+  c.animate([{transform:'translateY(0) rotate(0)'},{transform:'translateY(105vh) rotate(720deg)'}],
+    {duration:2200+Math.random()*1600,easing:'ease-in'}).onfinish=()=>c.remove();
 }
 
 /* ===== أوضاع الإدخال ===== */
@@ -418,9 +477,6 @@ function setMode(m){
   $('mKb').classList.toggle('act', m==='kb');
   $('mTile').classList.toggle('act', m==='tile');
   $('mDraw').classList.toggle('act', m==='draw');
-  $('mKb').setAttribute('aria-pressed', String(m==='kb'));
-  $('mTile').setAttribute('aria-pressed', String(m==='tile'));
-  $('mDraw').setAttribute('aria-pressed', String(m==='draw'));
   $('ans').classList.toggle('hide', m!=='kb');
   $('tileWrap').classList.toggle('hide', m!=='tile');
   $('drawWrap').classList.toggle('hide', m!=='draw');
@@ -502,8 +558,6 @@ function nextAfterMark(){
 }
 
 /* ===== الأزرار ===== */
-$('applyTextBtn')?.addEventListener('click',applyText);
-$('closeDictDlgBtn')?.addEventListener('click',()=>$('dlg').close());
 $('mKb').onclick = ()=> setMode('kb');
 $('mTile').onclick = ()=> setMode('tile');
 $('mDraw').onclick = ()=> setMode('draw');
@@ -514,8 +568,8 @@ $('pShow').onclick = ()=>{
   $('selfMark').classList.remove('hide');
   msg('قارني كتابتك مع الكلمة، واضغطي صح أو غلط.');
 };
-$('pRight').onclick = ()=>{ score++; window.sanaUtils.beep(880,.12); setTimeout(()=>window.sanaUtils.beep(1320,.14),90); nextAfterMark(); };
-$('pWrong').onclick = ()=>{ if(!wrongs.includes(target())) wrongs.push(target()); window.sanaUtils.beep(220,.18); nextAfterMark(); };
+$('pRight').onclick = ()=>{ score++; beep(880,.12); setTimeout(()=>beep(1320,.14),90); nextAfterMark(); };
+$('pWrong').onclick = ()=>{ if(!wrongs.includes(target())) wrongs.push(target()); beep(220,.18); nextAfterMark(); };
 $('hearBtn').onclick = ()=> say(target(), rate);
 $('slowBtn').onclick = ()=> say(target(), .5);
 $('okBtn').onclick = check;
