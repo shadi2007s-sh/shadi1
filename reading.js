@@ -1578,7 +1578,21 @@ $('sayBtn').onclick=()=>{ if(words[idx]){ stopRead(); azureSpeak(words[idx],null
 $('okBtn').onclick=()=> idx<words.length && correct();
 $('prevBtn').onclick=()=>{ if(idx>0){ idx--; paint(); } };
 $('nextBtn').onclick=()=>{ if(idx<words.length){ wrong(); idx++; paint(); if(idx>=words.length) finish(); } };
-$('readBtn').onclick=()=> readAloud();
+$('readBtn').onclick=()=>{
+  if(reading){ stopRead(); return; }
+  const chooser=$('readModeChooser');
+  if(chooser){ chooser.classList.remove('hide'); chooser.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+};
+$('readWordChoice').onclick=()=>{
+  $('readModeChooser').classList.add('hide');
+  setAssessmentMode('word');
+  readAloud();
+};
+$('readFullChoice').onclick=()=>{
+  $('readModeChooser').classList.add('hide');
+  setAssessmentMode('full');
+  readAloud();
+};
 $('resetBtn').onclick=()=>{ invalidateFullAudioCache(); stopAll(); restart(); };
 $('editBtn').onclick=openTextManager;
 $('manageTextsBtn').onclick=openTextManager;
