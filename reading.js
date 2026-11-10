@@ -208,6 +208,7 @@ const cfg = window.READING_APP_CONFIG || {};
 
   function persist(){ SanaProgress.saveCoachState(state); state = SanaProgress.getCoachState(); }
   function showPanel(title, body){
+    document.getElementById("toolsWrap")?.classList.remove("hide");
     panel.classList.remove("hide");
     panel.innerHTML =
       `<h3 style="display:flex;justify-content:space-between;align-items:center;gap:8px">
