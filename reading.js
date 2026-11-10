@@ -1618,7 +1618,12 @@ $('coachPanelsBtn').onclick=()=>{
 $('exportProgressBtn').onclick=exportProgress;
 $('repeatBtn').onclick=repeatCurrentWord;
 $('pauseBtn').onclick=pauseReading;
-$('micBtn').onclick=()=>{ if(typeof readingApi.runReadingAssessment === 'function') readingApi.runReadingAssessment(); };
+$('micBtn').onclick=async()=>{
+  if(listening){ stopMic(); say('⏹ توقّف الاستماع.'); return; }
+  stopRead();
+  await startMic();
+};
+$('readAndAssessBtn').onclick=()=>showAssessmentModeChooser();
 $('exportTextsBtn2').onclick=exportTexts;
 $('importTextsBtn').onclick=()=>$('textsFile').click();
 $('textsFile').onchange=e=>{if(e.target.files[0])importTexts(e.target.files[0]);};
