@@ -2,7 +2,6 @@
 <html dir="rtl" lang="ar">
 <head>
 <script src="reading-app-config.js"></script>
-<script src="sana-core.js"></script>
 
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -288,6 +287,7 @@ section > h2 .tally{
   <section>
     <h2>التقرير الكامل</h2>
     <div style="padding:14px 16px">
+      <label for="report" class="sr-only">تقرير الفحص</label>
       <textarea id="report" readonly spellcheck="false"></textarea>
     </div>
   </section>
@@ -307,8 +307,17 @@ function pushLog(level, message, where){
   const div = document.createElement('div');
   div.className = 'logline ' + level;
   const time = new Date().toLocaleTimeString('en-GB');
-  div.innerHTML = '<span class="when">' + time + '</span>' + esc(entry.message) +
-    (entry.where ? '<span class="where">' + esc(entry.where) + '</span>' : '');
+  const when = document.createElement('span');
+  when.className = 'when';
+  when.textContent = time;
+  div.appendChild(when);
+  div.appendChild(document.createTextNode(entry.message));
+  if(entry.where){
+    const whereEl = document.createElement('span');
+    whereEl.className = 'where';
+    whereEl.textContent = entry.where;
+    div.appendChild(whereEl);
+  }
   logEl.appendChild(div);
   logEl.scrollTop = logEl.scrollHeight;
   document.getElementById('tallyLog').textContent = errorLog.length;
@@ -378,7 +387,11 @@ function setCheck(id, state, detail, value, fix){
       fixEl.className = 'fix';
       c.el.querySelector('.body').appendChild(fixEl);
     }
-    fixEl.innerHTML = '<b>ما العمل</b>' + esc(fix);
+    fixEl.textContent = '';
+    const fixTitle = document.createElement('b');
+    fixTitle.textContent = 'ما العمل';
+    fixEl.appendChild(fixTitle);
+    fixEl.appendChild(document.createTextNode(fix));
   } else if(fixEl){ fixEl.remove(); }
   updateTallies();
   refreshReport();
@@ -786,19 +799,21 @@ async function testAutoplay(){
   }
 }
 
+
+
 async function checkToken(){
   setCheck('tokenEndpoint','busy','جارٍ الاتصال…','—');
   const started = Date.now();
   try {
-    const t = await window.SanaCore.getToken(true);
+    const t = await window.sanaSpeech.getToken(true);
     const ms = Date.now() - started;
     setCheck('tokenEndpoint','pass',
       'المنطقة: ' + (t.region || CONFIG.REGION) + ' · الصوت: ' + (t.voice || CONFIG.VOICE),
       ms + ' ms');
   } catch(err){
-    setCheck('tokenEndpoint','fail', err.message, 'فشل',
+    setCheck('tokenEndpoint','fail', window.sanaSpeech.errorMessage(err), 'فشل',
       'بدون هذا الخادم لا يعمل النطق ولا التعرّف. تحقّق أن Azure Function تعمل، وأن CORS يسمح لنطاق هذه الصفحة، وأن التفويض Anonymous.');
-    pushLog('error','فشل خادم المفاتيح: ' + err.message,'checkToken');
+    pushLog('error','فشل خادم المفاتيح: ' + window.sanaSpeech.errorMessage(err),'checkToken');
   }
 }
 
@@ -810,24 +825,19 @@ async function checkSdk(){
   }
   const started = Date.now();
   try {
-    await window.SanaCore.loadSdk();
-    setCheck('sdkLoad','pass','تم التحميل.', (Date.now()-started) + ' ms');
+    await window.sanaSpeech.loadSdk();
+    setCheck('sdkLoad','pass','تم التحميل.',(Date.now()-started)+' ms');
   } catch(err){
-    const message = {
-      SDK_LOAD_FAILED:'تعذّر تحميل المكتبة من CDN.',
-      SDK_LOAD_TIMEOUT:'انتهت المهلة بعد 15 ثانية.',
-      SDK_LOAD_EMPTY:'حُمّلت لكن SpeechSDK غير موجود.'
-    }[err?.message] || (err?.message || 'تعذّر تحميل المكتبة.');
-    setCheck('sdkLoad','fail', message, 'فشل',
+    setCheck('sdkLoad','fail',window.sanaSpeech.errorMessage(err),'فشل',
       'تحقّق من الإنترنت، ومن أن جدار الحماية أو فلتر الشبكة لا يحجب cdn.jsdelivr.net. تقييم النطق لن يعمل بدونها.');
-    pushLog('error','فشل تحميل Azure SDK: ' + (err?.message || err),'checkSdk');
+    pushLog('error','فشل تحميل Azure SDK: '+window.sanaSpeech.errorMessage(err),'checkSdk');
   }
 }
 
 async function testTts(){
   setCheck('ttsTest','busy','جارٍ التوليد…','—');
   try {
-    const t = await window.SanaCore.getToken(false);
+    const t = await window.sanaSpeech.getToken(false);
     const region = (t.region || CONFIG.REGION || 'eastus').trim().toLowerCase();
     const voice = t.voice || CONFIG.VOICE || 'ar-JO-SanaNeural';
     const ssml = '<?xml version="1.0" encoding="utf-8"?><speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ar-JO"><voice name="' + voice + '">مرحبًا، هذا اختبار للصوت.</voice></speak>';
@@ -922,7 +932,7 @@ async function testStt(){
   }
 
   try {
-    const t = await window.SanaCore.getToken(false);
+    const t = await window.sanaSpeech.getToken(false);
     const region = (t.region || CONFIG.REGION || 'eastus').trim().toLowerCase();
     const url = 'https://' + region + '.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=ar-SA&format=detailed';
     const res = await fetch(url, {
@@ -1079,8 +1089,6 @@ document.getElementById('copyBtn').addEventListener('click', async e => {
 
 refreshReport();
 runAll();
-if (typeof window.initSanaNavigation === 'function') window.initSanaNavigation();
-else if (window.initSanaNavigation && typeof window.initSanaNavigation.init === 'function') window.initSanaNavigation.init();
 </script>
 </body>
 </html>
