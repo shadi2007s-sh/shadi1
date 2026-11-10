@@ -642,6 +642,38 @@ body[data-sana-device="phone"] #readingCenter #text{
   #readingLeftSidebar .top-actions{grid-template-columns:1fr}
 }
 </style>
+<style id="v10-full-css">
+#v10FullOverlay{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;
+  padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+  background:rgba(30,50,65,.6);direction:rtl;font-family:inherit}
+#v10FullOverlay .fo-card{background:#fff;border-radius:26px;width:min(920px,100%);max-height:100%;display:flex;flex-direction:column;gap:12px;
+  padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3);box-sizing:border-box}
+#v10FullOverlay .fo-title{font-weight:800;font-size:1.25rem;text-align:center;color:#2b4a5c}
+#v10FullOverlay .fo-status{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:1.05rem;color:#2f8f5b;text-align:center}
+#v10FullOverlay .fo-dot{width:14px;height:14px;border-radius:50%;background:#e0524d;animation:foPulse 1.1s infinite}
+@keyframes foPulse{0%{transform:scale(.8);opacity:.6}50%{transform:scale(1.25);opacity:1}100%{transform:scale(.8);opacity:.6}}
+#v10FullOverlay .fo-textbox{position:relative;overflow:auto;flex:1 1 auto;min-height:120px;background:#fffdf6;border:2px solid #e6dcc6;border-radius:20px;
+  padding:14px 16px;font-family:var(--font-read,"Noto Naskh Arabic",serif);font-size:clamp(1.7rem,5.2vw,2.5rem);line-height:2.1;text-align:right;direction:rtl}
+#v10FullOverlay .w{display:inline-block;padding:0 6px;margin:0 1px;border-radius:10px;color:#9aa0a6;transition:background .2s,color .2s}
+#v10FullOverlay .w.heard{color:#1f6e43;background:#d8f3e3}
+#v10FullOverlay .w.cur{color:#2b4a5c;background:#fff3cf;box-shadow:0 0 0 3px #f0b429}
+#v10FullOverlay .w.good{color:#1f6e43;background:#d8f3e3}
+#v10FullOverlay .w.ok{color:#8a5a00;background:#fff3cf}
+#v10FullOverlay .w.bad{color:#a12a26;background:#fde0de}
+#v10FullOverlay .w.miss{color:#6b7075;background:#eceff1;text-decoration:line-through}
+#v10FullOverlay .fo-btns{display:flex;gap:10px;flex-wrap:wrap}
+#v10FullOverlay .fo-btn{flex:1 1 140px;padding:14px 12px;border-radius:20px;border:2px solid #cfe4ee;background:#fff;font:800 1.1rem inherit;font-family:inherit;color:#2b4a5c;box-shadow:0 4px 0 #cfe4ee;cursor:pointer}
+#v10FullOverlay .fo-btn.stop{flex:3 1 220px;background:#e0524d;border-color:#b13c38;color:#fff;font-size:1.4rem;padding:18px 12px;box-shadow:0 5px 0 #b13c38}
+#v10FullOverlay .fo-btn.primary{background:#4f9fcb;border-color:#3f81a5;color:#fff;box-shadow:0 4px 0 #3f81a5}
+#v10FullOverlay .fo-btn:disabled{opacity:.6}
+#v10FullOverlay .fo-score{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+#v10FullOverlay .fo-score b{font-size:2.6rem;color:#2b4a5c}
+#v10FullOverlay .fo-meter{height:12px;background:#e6dcc6;border-radius:999px;overflow:hidden}
+#v10FullOverlay .fo-meter i{display:block;height:100%;background:linear-gradient(90deg,#f0b429,#2f8f5b)}
+#v10FullOverlay .fo-small{font-size:.9rem;color:#6b7075;text-align:center}
+#v10FullOverlay .fo-legend{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:.85rem}
+#v10FullOverlay .fo-legend .w{font-size:.85rem;font-family:inherit}
+</style>
 </head>
 <body>
 <div style="max-width:860px;margin:0 auto 10px;text-align:center">
@@ -1105,77 +1137,122 @@ body[data-sana-device="phone"] #readingCenter #text{
     }
   }
 
+  const PUNCT_RE = /[\u060C\u061B\u061F.,;:!?"'()\[\]«»…]/g;
+
+  function fullOverlay(){
+    let o=document.getElementById('v10FullOverlay');
+    if(!o){
+      o=document.createElement('div');
+      o.id='v10FullOverlay';
+      o.setAttribute('role','dialog');
+      o.setAttribute('aria-modal','true');
+      document.body.appendChild(o);
+    }
+    o.style.display='flex';
+    return o;
+  }
+
   async function runFullTextPron(){
-    const ref = words.join(' ').trim();
-    if(!ref){ showPanel("تقييم القراءة","لا يوجد نص حالي."); return; }
+    const items = words.map(w=>({show:w, n:normAr(w), plain:w.replace(PUNCT_RE,'')}));
+    const alignIdx = items.map((x,i)=>x.n?i:-1).filter(i=>i>=0);
+    if(!alignIdx.length){ showPanel("تقييم القراءة","لا يوجد نص حالي."); return; }
 
     // Stop any TTS/reading activity before opening the microphone.
     try{ if(typeof stopRead === 'function') stopRead(); }catch(e){}
 
-    showPanel("🎤 تقييم قراءة النص الكامل",
-      `<p>اقرئي النص كاملاً بصوتك الآن. اضغطي "خلصت — قيّمي قراءتي" عندما تنتهين.</p>
-       <div id="fullPronLive" class="v10-small">جارٍ تجهيز المايك…</div>
-       <button class="v10-btn" id="v10StopFullPron" disabled>⏳ تجهيز الاستماع…</button>`);
+    const o = fullOverlay();
+    let rec = null, stopping = false, closed = false;
+    let heardWords = [], partial = [], recognizedPieces = [];
 
-    let rec = null;
-    let stopping = false;
-    let wordScores = [];
-    let heardWords = [];
-    let recognizedPieces = [];
-
-    const setLive = msg => {
-      const el=document.getElementById('fullPronLive');
-      if(el) el.textContent=msg;
+    const spansHtml = cls => items.map((x,i)=>`<span class="w ${cls?cls[i]||'':''}">${escapeHtml(x.show)}</span>`).join(' ');
+    const frame = (title, status, body, buttons) => {
+      o.innerHTML = `<div class="fo-card">
+        <div class="fo-title">${title}</div>
+        ${status ? `<div class="fo-status" id="foStatus">${status}</div>` : ''}
+        ${body}
+        <div class="fo-btns">${buttons}</div>
+      </div>`;
+    };
+    const setStatus = html => { const el=o.querySelector('#foStatus'); if(el) el.innerHTML=html; };
+    const closeOverlay = () => {
+      closed = true; stopping = true;
+      try{ rec && rec.close(); }catch(e){}
+      o.style.display='none'; o.innerHTML='';
+    };
+    const bindClose = () => o.querySelectorAll('[data-fo="close"]').forEach(b=>b.onclick=closeOverlay);
+    const bindRetry = () => o.querySelectorAll('[data-fo="retry"]').forEach(b=>b.onclick=()=>{ closeOverlay(); runFullTextPron(); });
+    const showError = msg => {
+      frame("تعذر التقييم", '', `<p class="fo-small">${escapeHtml(msg)}</p><p class="fo-small">تأكدي من السماح بالمايك وبقاء اتصال الإنترنت.</p>`,
+        `<button class="fo-btn primary" data-fo="retry">🔁 حاولي مرة أخرى</button><button class="fo-btn" data-fo="close">إغلاق</button>`);
+      bindClose(); bindRetry();
     };
 
-    const finishAssessment = () => {
-      if(stopping || !rec) return;
-      stopping = true;
-      const btn=document.getElementById('v10StopFullPron');
-      if(btn){ btn.disabled=true; btn.textContent='⏳ جارٍ حساب النتيجة…'; }
-      try{
-        rec.stopContinuousRecognitionAsync(
-          () => setTimeout(finishResult, 600),
-          err => finishError(err)
-        );
-      }catch(err){ finishError(err); }
+    // الشاشة الأولى: النص كبير وزر الإيقاف واضح
+    frame("📖 اقرئي النص بصوتك", `⏳ جارٍ تجهيز المايك…`,
+      `<div class="fo-textbox" id="foText">${spansHtml()}</div>`,
+      `<button class="fo-btn stop" id="foStop" disabled>⏳ تجهيز…</button><button class="fo-btn" data-fo="close">✕ إلغاء</button>`);
+    bindClose();
+
+    // تلوين الكلمات التي سمعناها أثناء القراءة وتمييز الكلمة التالية
+    const updateLive = () => {
+      if(closed) return;
+      const all = heardWords.map(h=>normAr(h.word)).concat(partial.map(normAr)).filter(Boolean);
+      const map = alignWords(alignIdx.map(i=>items[i].n), all, 0.6);
+      const box = o.querySelector('#foText'); if(!box) return;
+      const spans = box.querySelectorAll('.w');
+      spans.forEach(s=>s.classList.remove('heard','cur'));
+      let last=-1;
+      map.forEach((j,k)=>{ if(j>=0){ spans[alignIdx[k]]?.classList.add('heard'); last=k; } });
+      if(last < alignIdx.length-1){
+        const cur = spans[alignIdx[last+1]];
+        if(cur){ cur.classList.add('cur'); box.scrollTop = Math.max(0, cur.offsetTop - box.clientHeight/2); }
+      }
+    };
+
+    const finishError = err => {
+      if(closed) return;
+      try{ rec && rec.close(); }catch(e){}
+      console.error('Full-text pronunciation stop error:', err);
+      showError(String(err?.message || err || 'تعذر إيقاف التقييم.'));
     };
 
     const finishResult = () => {
+      if(closed) return;
       try{ rec && rec.close(); }catch(e){}
       if(!heardWords.length){
-        showPanel("لم أسمع قراءة", `<p>لم يصل أي صوت مفهوم. تأكدي من السماح بالمايك، وقرّبي الجهاز، ثم اقرئي النص مرة أخرى قبل الضغط على «خلصت».</p>`);
-        return;
+        frame("لم أسمع قراءة", '', `<p class="fo-small">لم يصل أي صوت مفهوم. قرّبي الجهاز وتأكدي أن المايك مسموح، ثم اقرئي النص مرة أخرى قبل الضغط على «خلصت».</p>`,
+          `<button class="fo-btn primary" data-fo="retry">🔁 اقرئي مرة أخرى</button><button class="fo-btn" data-fo="close">إغلاق</button>`);
+        bindClose(); bindRetry(); return;
       }
-      const toks = ref.split(/\s+/).map(w=>({
-        show: w.replace(/[\u060C\u061B\u061F.,;:!?"'()\[\]«»…]/g,''),
-        n: normAr(w)
-      })).filter(x=>x.n);
       const heardN = heardWords.map(h=>normAr(h.word));
-      const map = alignWords(toks.map(x=>x.n), heardN, 0.6);
+      const map = alignWords(alignIdx.map(i=>items[i].n), heardN, 0.6);
       const hasPA = heardWords.some(h=>h.score!=null);
+      const cls = new Array(items.length).fill('');
       let sum=0, read=0;
       const weak=[], omitted=[];
-      toks.forEach((tk,i)=>{
-        const j=map[i];
-        if(j<0){ omitted.push(tk.show); return; }
+      alignIdx.forEach((i,k)=>{
+        const j=map[k], it=items[i];
+        if(j<0){ omitted.push(it.plain); cls[i]='miss'; return; }
         read++;
         const h=heardWords[j];
-        const s = h.score!=null ? h.score : Math.round(sim(tk.n,heardN[j])*100);
+        const s = h.score!=null ? h.score : Math.round(sim(it.n,heardN[j])*100);
         sum+=s;
-        if(s<70) weak.push({word:tk.show,score:s});
+        cls[i] = s>=85 ? 'good' : s>=70 ? 'ok' : 'bad';
+        if(s<70) weak.push({word:it.plain,score:s});
       });
-      const avg = toks.length ? Math.round(sum/toks.length) : 0;
+      const total = alignIdx.length;
+      const avg = Math.round(sum/total);
+      const verdict = avg>=85 ? 'ممتاز 🌟' : avg>=70 ? 'جيد 👍' : 'حاولي مرة أخرى 💪';
       const chip = (txt,extra='') => `<span class="v10-chip">${escapeHtml(txt)}${extra}</span>`;
-      showPanel("نتيجة قراءة النص الكامل", `
-        <div class="v10-row"><strong>الدقة العامة</strong><strong>${avg}%</strong></div>
-        <div class="v10-meter"><i style="width:${Math.max(0,Math.min(100,avg))}%"></i></div>
-        <p class="v10-small">قُرئت ${read} من ${toks.length} كلمة.</p>
-        ${hasPA ? '' : '<p class="v10-small">تنبيه: الخدمة لم تُرجع درجات نطق لكل كلمة، فالنتيجة مبنية على تطابق الكلمات المسموعة مع النص فقط.</p>'}
-        ${weak.length ? `<h4>🎯 كلمات تحتاج تدريب</h4><div>${weak.map(w=>chip(w.word,' ('+Math.round(w.score)+'%)')).join('')}</div>` : ''}
-        ${omitted.length ? `<h4>⏭ كلمات لم أسمعها</h4><div>${omitted.map(w=>chip(w)).join('')}</div>` : ''}
-        <p class="v10-small">النص المسموع: ${escapeHtml(recognizedPieces.join(' ') || '—')}</p>
-      `);
+      frame("نتيجة قراءتك", '',
+        `<div class="fo-score"><b>${avg}%</b><strong style="font-size:1.4rem">${verdict}</strong></div>
+         <div class="fo-meter"><i style="width:${Math.max(0,Math.min(100,avg))}%"></i></div>
+         <div class="fo-small">قُرئت ${read} من ${total} كلمة</div>
+         <div class="fo-textbox" id="foText">${spansHtml(cls)}</div>
+         <div class="fo-legend"><span class="w good">ممتازة</span><span class="w ok">جيدة</span><span class="w bad">تحتاج تدريب</span><span class="w miss">لم أسمعها</span></div>
+         ${hasPA ? '' : '<div class="fo-small">تنبيه: الخدمة لم تُرجع درجات نطق لكل كلمة، فالنتيجة مبنية على تطابق الكلمات المسموعة مع النص فقط.</div>'}`,
+        `<button class="fo-btn primary" data-fo="retry">🔁 اقرئي مرة أخرى</button><button class="fo-btn" data-fo="close">إغلاق</button>`);
+      bindClose(); bindRetry();
       state.sessions += 1;
       state.words += read;
       state.bestAccuracy = Math.max(state.bestAccuracy, avg);
@@ -1186,29 +1263,36 @@ body[data-sana-device="phone"] #readingCenter #text{
       persist();
     };
 
-    const finishError = err => {
-      try{ rec && rec.close(); }catch(e){}
-      const msg = String(err?.message || err || 'تعذر إيقاف التقييم.');
-      console.error('Full-text pronunciation stop error:', err);
-      showPanel("تعذر التقييم", `<p>${escapeHtml(msg)}</p>`);
+    const finishAssessment = () => {
+      if(stopping || !rec) return;
+      stopping = true;
+      const btn=o.querySelector('#foStop');
+      if(btn){ btn.disabled=true; btn.textContent='⏳ جارٍ حساب النتيجة…'; }
+      setStatus('⏳ لحظة… نحسب نتيجتك');
+      try{
+        rec.stopContinuousRecognitionAsync(
+          () => setTimeout(finishResult, 600),
+          err => finishError(err)
+        );
+      }catch(err){ finishError(err); }
     };
 
     try{
       const SDK = await loadSdk();
-      const t = await token();
-      if(!t || !t.token) throw new Error('لم يتم الحصول على Speech token.');
+      const tk = await token();
+      if(closed) return;
+      if(!tk || !tk.token) throw new Error('لم يتم الحصول على Speech token.');
 
       const speechConfig = SDK.SpeechConfig.fromAuthorizationToken(
-        t.token, t.region || cfg.REGION || "eastus"
+        tk.token, tk.region || cfg.REGION || "eastus"
       );
-      // STT/Pronunciation Assessment uses ar-SA; TTS voice remains unchanged.
       speechConfig.speechRecognitionLanguage = "ar-SA";
 
       const audioConfig = SDK.AudioConfig.fromDefaultMicrophoneInput();
       rec = new SDK.SpeechRecognizer(speechConfig, audioConfig);
 
       // وضع القراءة المستمرة لا يدعم EnableMiscue حسب توثيق Azure، لذلك نقيّم النطق بدون نص مرجعي
-      // ثم نقارن الكلمات المسموعة بالنص يدويًا (نحدد الكلمات الناقصة بأنفسنا).
+      // ثم نقارن الكلمات المسموعة بالنص يدويًا.
       const pac = new SDK.PronunciationAssessmentConfig(
         "",
         SDK.PronunciationAssessmentGradingSystem.HundredMark,
@@ -1219,16 +1303,14 @@ body[data-sana-device="phone"] #readingCenter #text{
 
       rec.recognizing = (s,e) => {
         try{
-          const live=document.getElementById('fullPronLive');
-          if(live && e.result?.text) live.textContent='أسمع: '+e.result.text;
+          partial = String(e.result?.text||'').split(/\s+/).filter(Boolean);
+          updateLive();
         }catch(err){}
       };
 
       rec.recognized = (s, e) => {
         try{
-          const json=e.result?.properties?.getProperty(
-            SDK.PropertyId.SpeechServiceResponse_JsonResult
-          );
+          const json=e.result?.properties?.getProperty(SDK.PropertyId.SpeechServiceResponse_JsonResult);
           const data=JSON.parse(json || '{}');
           console.log('Full-text pronunciation response:', data);
           const wordsResult=data.NBest?.[0]?.Words || [];
@@ -1237,40 +1319,37 @@ body[data-sana-device="phone"] #readingCenter #text{
             const wp=w.PronunciationAssessment;
             heardWords.push({word:w.Word, score: wp && wp.AccuracyScore!=null ? Number(wp.AccuracyScore) : null});
           });
-          const live=document.getElementById('fullPronLive');
-          if(live) live.textContent='سمعت حتى الآن: '+(recognizedPieces.join(' ')||'—');
+          partial = [];
+          updateLive();
         }catch(err){ console.error('recognized handler error:',err); }
       };
 
       rec.canceled = (s,e) => {
         console.error('Full-text pronunciation canceled:', e);
-        if(!stopping){
+        if(!stopping && !closed){
           stopping=true;
           try{rec.close();}catch(x){}
-          showPanel("تعذر التقييم", `<p>${escapeHtml(e?.errorDetails || e?.reason || 'تم إيقاف التعرف على الكلام.')}</p>`);
+          showError(e?.errorDetails || e?.reason || 'تم إيقاف التعرف على الكلام.');
         }
       };
 
-      rec.sessionStopped = () => {
-        console.log('Full-text pronunciation session stopped.');
-      };
+      rec.sessionStopped = () => { console.log('Full-text pronunciation session stopped.'); };
 
-      const btn=document.getElementById('v10StopFullPron');
-      if(btn){ btn.disabled=false; btn.textContent='⏹ خلصت — قيّمي قراءتي'; btn.onclick=finishAssessment; }
-      setLive('🎙 اقرئي النص كاملاً الآن…');
+      const stopBtn=o.querySelector('#foStop');
+      if(stopBtn){ stopBtn.disabled=false; stopBtn.textContent='⏹ خلصت — قيّمي قراءتي'; stopBtn.onclick=finishAssessment; }
 
       rec.startContinuousRecognitionAsync(
-        () => { setLive('🎙 أسمعك الآن… اقرئي النص كاملاً.'); },
+        () => { setStatus('<span class="fo-dot"></span> أسمعك الآن… اقرئي النص'); updateLive(); },
         err => {
           console.error('Full-text pronunciation start error:',err);
           try{rec.close();}catch(x){}
-          showPanel("تعذر التقييم", `<p>${escapeHtml(err?.message || err || 'تعذر تشغيل المايك.')}</p>`);
+          showError(err?.message || err || 'تعذر تشغيل المايك.');
         }
       );
     }catch(err){
       console.error('Full-text pronunciation setup error:',err);
       try{rec && rec.close();}catch(e){}
-      showPanel("تعذر التقييم", `<p>${escapeHtml(err?.message || err || 'تعذر تشغيل تقييم القراءة.')}</p>`);
+      if(!closed) showError(err?.message || err || 'تعذر تشغيل تقييم القراءة.');
     }
   }
 
