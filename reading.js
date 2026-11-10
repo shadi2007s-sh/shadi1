@@ -286,7 +286,7 @@ const cfg = window.READING_APP_CONFIG || {};
       );
       const score = Number(r.pa?.AccuracyScore ?? 0);
       const heard = (r.result?.text || '').trim();
-      if(!/[\\p{L}\\p{N}]/u.test(heard)){
+      if(!/[ء-ي0-9A-Za-z]/.test(heard)){
         showPanel("لم ألتقط الكلمة", `<p>لم يصل كلام واضح إلى التقييم. انتظري «أسمعك الآن» ثم قولي الكلمة مرة واحدة.</p>`);
         return;
       }
