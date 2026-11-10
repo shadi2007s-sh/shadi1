@@ -946,6 +946,60 @@ body[data-sana-device="phone"] #readingCenter #text{
   let state = JSON.parse(localStorage.getItem(stateKey) || '{"hard":{},"sessions":0,"words":0,"bestAccuracy":0,"bestStreak":0,"history":[]}');
 
   function persist(){ localStorage.setItem(stateKey, JSON.stringify(state)); }
+  // Azure يرجع النص المسموع بدون تشكيل وبدون علامات ترقيم، فنُنظّف النص المرجعي بنفس الشكل
+  // حتى لا تُحسب كل الكلمات "ناقصة" وتصبح الدرجة 0.
+  function cleanRef(s){
+    return String(s||'')
+      .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g,'')
+      .replace(/[\u060C\u061B\u061F\u066A-\u066D.,;:!?"'()\[\]{}«»…\-–—_\/\\]/g,' ')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+  // تطبيع عربي للمقارنة: بدون تشكيل، وتوحيد الهمزات والياء والتاء المربوطة
+  function normAr(s){
+    return cleanRef(s)
+      .replace(/[\u0622\u0623\u0625\u0671]/g,'\u0627')
+      .replace(/\u0649/g,'\u064A').replace(/\u0629/g,'\u0647')
+      .replace(/\u0624/g,'\u0648').replace(/\u0626/g,'\u064A')
+      .replace(/[^\u0621-\u064A0-9a-zA-Z]/g,'');
+  }
+  function lev(a,b){
+    const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+    let prev=Array.from({length:n+1},(_,j)=>j);
+    for(let i=1;i<=m;i++){
+      const cur=[i];
+      for(let j=1;j<=n;j++){
+        cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      }
+      prev=cur;
+    }
+    return prev[n];
+  }
+  function sim(a,b){
+    if(a===b) return 1;
+    const L=Math.max(a.length,b.length); if(!L) return 0;
+    return 1 - lev(a,b)/L;
+  }
+  // مواءمة كلمات النص المرجعي مع الكلمات المسموعة (LCS موزون). تُرجع: لكل كلمة مرجعية فهرس المسموعة أو -1
+  function alignWords(refN, heardN, thr){
+    const R=refN.length,H=heardN.length, NEG=-1e9;
+    const dp=Array.from({length:R+1},()=>new Array(H+1).fill(0));
+    const S=Array.from({length:R},(_,i)=>heardN.map(h=>sim(refN[i],h)));
+    for(let i=1;i<=R;i++) for(let j=1;j<=H;j++){
+      const s=S[i-1][j-1];
+      const diag = s>=thr ? dp[i-1][j-1]+s : NEG;
+      dp[i][j]=Math.max(dp[i-1][j],dp[i][j-1],diag);
+    }
+    const map=new Array(R).fill(-1);
+    let i=R,j=H;
+    while(i>0&&j>0){
+      const s=S[i-1][j-1];
+      if(s>=thr && Math.abs(dp[i][j]-(dp[i-1][j-1]+s))<1e-9){ map[i-1]=j-1; i--; j--; }
+      else if(dp[i-1][j]>=dp[i][j-1]) i--; else j--;
+    }
+    return map;
+  }
+
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
   function showPanel(title, body){
     panel.classList.remove("hide");
@@ -991,7 +1045,7 @@ body[data-sana-device="phone"] #readingCenter #text{
     const audioConfig = SDK.AudioConfig.fromDefaultMicrophoneInput();
     const rec = new SDK.SpeechRecognizer(speechConfig, audioConfig);
     const pac = new SDK.PronunciationAssessmentConfig(
-      referenceText,
+      cleanRef(referenceText),
       SDK.PronunciationAssessmentGradingSystem.HundredMark,
       SDK.PronunciationAssessmentGranularity.Word,
       true
@@ -1066,6 +1120,7 @@ body[data-sana-device="phone"] #readingCenter #text{
     let rec = null;
     let stopping = false;
     let wordScores = [];
+    let heardWords = [];
     let recognizedPieces = [];
 
     const setLive = msg => {
@@ -1080,7 +1135,7 @@ body[data-sana-device="phone"] #readingCenter #text{
       if(btn){ btn.disabled=true; btn.textContent='⏳ جارٍ حساب النتيجة…'; }
       try{
         rec.stopContinuousRecognitionAsync(
-          () => finishResult(),
+          () => setTimeout(finishResult, 600),
           err => finishError(err)
         );
       }catch(err){ finishError(err); }
@@ -1088,24 +1143,46 @@ body[data-sana-device="phone"] #readingCenter #text{
 
     const finishResult = () => {
       try{ rec && rec.close(); }catch(e){}
-      const avg = wordScores.length
-        ? Math.round(wordScores.reduce((a,w)=>a+w.score,0)/wordScores.length)
-        : 0;
-      const weakWords = wordScores.filter(w => w.score < 70);
+      if(!heardWords.length){
+        showPanel("لم أسمع قراءة", `<p>لم يصل أي صوت مفهوم. تأكدي من السماح بالمايك، وقرّبي الجهاز، ثم اقرئي النص مرة أخرى قبل الضغط على «خلصت».</p>`);
+        return;
+      }
+      const toks = ref.split(/\s+/).map(w=>({
+        show: w.replace(/[\u060C\u061B\u061F.,;:!?"'()\[\]«»…]/g,''),
+        n: normAr(w)
+      })).filter(x=>x.n);
+      const heardN = heardWords.map(h=>normAr(h.word));
+      const map = alignWords(toks.map(x=>x.n), heardN, 0.6);
+      const hasPA = heardWords.some(h=>h.score!=null);
+      let sum=0, read=0;
+      const weak=[], omitted=[];
+      toks.forEach((tk,i)=>{
+        const j=map[i];
+        if(j<0){ omitted.push(tk.show); return; }
+        read++;
+        const h=heardWords[j];
+        const s = h.score!=null ? h.score : Math.round(sim(tk.n,heardN[j])*100);
+        sum+=s;
+        if(s<70) weak.push({word:tk.show,score:s});
+      });
+      const avg = toks.length ? Math.round(sum/toks.length) : 0;
+      const chip = (txt,extra='') => `<span class="v10-chip">${escapeHtml(txt)}${extra}</span>`;
       showPanel("نتيجة قراءة النص الكامل", `
         <div class="v10-row"><strong>الدقة العامة</strong><strong>${avg}%</strong></div>
         <div class="v10-meter"><i style="width:${Math.max(0,Math.min(100,avg))}%"></i></div>
+        <p class="v10-small">قُرئت ${read} من ${toks.length} كلمة.</p>
+        ${hasPA ? '' : '<p class="v10-small">تنبيه: الخدمة لم تُرجع درجات نطق لكل كلمة، فالنتيجة مبنية على تطابق الكلمات المسموعة مع النص فقط.</p>'}
+        ${weak.length ? `<h4>🎯 كلمات تحتاج تدريب</h4><div>${weak.map(w=>chip(w.word,' ('+Math.round(w.score)+'%)')).join('')}</div>` : ''}
+        ${omitted.length ? `<h4>⏭ كلمات لم أسمعها</h4><div>${omitted.map(w=>chip(w)).join('')}</div>` : ''}
         <p class="v10-small">النص المسموع: ${escapeHtml(recognizedPieces.join(' ') || '—')}</p>
-        ${wordScores.length ? `<p class="v10-small">تم تقييم ${wordScores.length} كلمة.</p>` : `<p class="v10-small">لم يتم الحصول على درجات للكلمات.</p>`}
-        ${weakWords.length ? `<h4>🎯 كلمات تحتاج تدريب</h4>
-          <div>${weakWords.map(w=>`<span class="v10-chip">${escapeHtml(w.word)} (${Math.round(w.score)}%)</span>`).join('')}</div>` : ''}
       `);
       state.sessions += 1;
-      state.words += wordScores.length;
+      state.words += read;
       state.bestAccuracy = Math.max(state.bestAccuracy, avg);
-      state.history.push({type:"reading-full",at:new Date().toISOString(),accuracy:avg,words:wordScores.length});
+      state.history.push({type:"reading-full",at:new Date().toISOString(),accuracy:avg,words:read});
       state.history = state.history.slice(-50);
-      weakWords.forEach(w => { state.hard[w.word] = (state.hard[w.word]||0)+1; });
+      weak.forEach(w => { state.hard[w.word] = (state.hard[w.word]||0)+1; });
+      omitted.forEach(w => { state.hard[w] = (state.hard[w]||0)+1; });
       persist();
     };
 
@@ -1130,11 +1207,13 @@ body[data-sana-device="phone"] #readingCenter #text{
       const audioConfig = SDK.AudioConfig.fromDefaultMicrophoneInput();
       rec = new SDK.SpeechRecognizer(speechConfig, audioConfig);
 
+      // وضع القراءة المستمرة لا يدعم EnableMiscue حسب توثيق Azure، لذلك نقيّم النطق بدون نص مرجعي
+      // ثم نقارن الكلمات المسموعة بالنص يدويًا (نحدد الكلمات الناقصة بأنفسنا).
       const pac = new SDK.PronunciationAssessmentConfig(
-        ref,
+        "",
         SDK.PronunciationAssessmentGradingSystem.HundredMark,
         SDK.PronunciationAssessmentGranularity.Word,
-        true
+        false
       );
       pac.applyTo(rec);
 
@@ -1156,7 +1235,7 @@ body[data-sana-device="phone"] #readingCenter #text{
           if(e.result?.text) recognizedPieces.push(e.result.text);
           wordsResult.forEach(w=>{
             const wp=w.PronunciationAssessment;
-            if(wp) wordScores.push({word:w.Word,score:Number(wp.AccuracyScore ?? 0)});
+            heardWords.push({word:w.Word, score: wp && wp.AccuracyScore!=null ? Number(wp.AccuracyScore) : null});
           });
           const live=document.getElementById('fullPronLive');
           if(live) live.textContent='سمعت حتى الآن: '+(recognizedPieces.join(' ')||'—');
