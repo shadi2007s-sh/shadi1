@@ -3,11 +3,10 @@
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="theme-color" content="#4f9fcb"/>
 <title>تدريب الإملاء العربي — Sana Neural</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@500;700;800&amp;family=Noto+Naskh+Arabic:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+
 <style>
   :root{
     --paper:#fbf6e9;--ink:#2f3437;--rule:#cfe0e8;--margin:#e2725b;
@@ -194,6 +193,7 @@ body[data-sana-device="phone"] dialog{
 
 </style>
 <script src="reading-app-config.js"></script>
+<script src="pwa-register.js" defer></script>
 
 <script>window.__azureSdkPromise=null;
 window.loadAzureSdk=function(){
@@ -210,7 +210,55 @@ window.loadAzureSdk=function(){
   });
   return window.__azureSdkPromise;
 };
-</script></head>
+</script><style id="dict-extra">
+@font-face{font-family:"Noto Naskh Arabic";font-weight:400;font-display:swap;src:url(fonts/noto-naskh-arabic-arabic-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Noto Naskh Arabic";font-weight:600;font-display:swap;src:url(fonts/noto-naskh-arabic-arabic-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Noto Naskh Arabic";font-weight:700;font-display:swap;src:url(fonts/noto-naskh-arabic-arabic-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Baloo Bhaijaan 2";font-weight:500;font-display:swap;src:url(fonts/baloo-bhaijaan-2-arabic-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Baloo Bhaijaan 2";font-weight:700;font-display:swap;src:url(fonts/baloo-bhaijaan-2-arabic-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Baloo Bhaijaan 2";font-weight:800;font-display:swap;src:url(fonts/baloo-bhaijaan-2-arabic-800-normal.woff2) format("woff2")}
+button,select,input[type=checkbox]{min-height:48px}
+input[type=checkbox]{min-height:0;width:22px;height:22px}
+.modes button,.tiles button,button.ghost{min-height:48px}
+button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:4px solid #1b6fb5;outline-offset:2px}
+.hdr{flex:0 0 auto;min-width:48px;padding:4px 10px;border-radius:999px;border:2px solid #e6dcc6;box-shadow:0 2px 0 #e6dcc6;font-size:1rem}
+.stats{align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.puz{display:flex;align-items:center;gap:8px;justify-content:center;margin:4px 0 8px;font-size:.9rem;font-weight:700;cursor:pointer}
+#tiles button.target-hit{background:#fff}
+/* لوحة التقدّم */
+.pg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.pg-box{background:#fff;border:2px solid #e6dcc6;border-radius:14px;padding:8px;text-align:center}
+.pg-box b{display:block;font-size:1.4rem}.pg-box span{font-size:.75rem;color:#7b8085}
+.pg-h{font-weight:800;margin:12px 0 6px}
+.pg-bars{display:flex;gap:6px;align-items:flex-end;height:84px;background:#fff;border:2px solid #e6dcc6;border-radius:14px;padding:8px}
+.pg-bars div{flex:1;text-align:center;font-size:.7rem;color:#7b8085;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.pg-bars i{display:block;background:linear-gradient(0deg,#2f8f5b,#f0b429);border-radius:6px 6px 0 0;min-height:2px}
+.pg-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pg-chip{font-family:var(--font-read);font-size:1.15rem;background:#fff;border:2px solid #ffd7cc;border-radius:12px;padding:4px 10px}
+.pg-chip small{font-family:var(--font-ui);font-size:.7rem;color:#a8442f;margin-inline-start:6px}
+.pg-list{font-size:.82rem;line-height:1.9;background:#fff;border:2px solid #e6dcc6;border-radius:12px;padding:6px 10px;max-height:150px;overflow:auto}
+dialog{max-height:92vh;overflow:auto}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;font-weight:700}
+.setrow select{min-height:44px;font-family:inherit;font-size:1rem;border-radius:10px;border:2px solid #d9cdb2;padding:4px 8px;background:#fff}
+/* حجم الخط والتباين */
+body.sz-l input#ans{font-size:2.6rem}body.sz-l .fb,body.sz-l .reveal{font-size:2.6rem}body.sz-l .slots{font-size:2.5rem}body.sz-l .tiles button{font-size:1.7rem}
+body.hc{background:#fff!important;color:#000!important}
+body.hc .card{background:#fff;border:3px solid #000}
+body.hc button{border:3px solid #000!important}
+body.hc .msg,body.hc .counter{color:#000}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.confetti{display:none}}
+body.rm *{animation:none!important;transition:none!important}body.rm .confetti{display:none}
+.mk-ok{color:#1f6e43}.mk-bad{background:#ffe4dc;color:#a12a26;border-radius:6px;padding:0 4px}
+.mk-sent{font-family:var(--font-read);font-size:1.25rem;line-height:2;background:#fff;border:2px solid #e6dcc6;border-radius:12px;padding:6px 10px;margin:6px 0}
+.mk-tip{font-family:var(--font-ui);font-size:.8rem;color:#7b8085;line-height:1.6}
+.ex-big{font-size:2.2rem;font-weight:800;text-align:center}
+.ex-bar{height:14px;background:#e6dcc6;border-radius:999px;overflow:hidden;margin:6px 0}
+.ex-bar i{display:block;height:100%;background:linear-gradient(90deg,#f0b429,#2f8f5b)}
+#mockAns{height:110px;font-size:1.4rem;margin:8px 0}
+#exText{height:120px}
+dialog input[type=date]{font-family:inherit;font-size:1rem;border:2px solid #d9cdb2;border-radius:10px;padding:8px;background:#fff;min-height:44px}
+</style>
+</head>
 <body>
 <div class="wrap">
 <header>
@@ -218,6 +266,10 @@ window.loadAzureSdk=function(){
 <div class="stats">
 <div class="pill">⭐ <span id="score">0</span></div>
 <div class="pill">📊 <span id="prog">0</span>%</div>
+<div class="pill" title="هدف اليوم">🎯 <span id="dg">0</span>/<span id="dgm">20</span></div>
+<button class="hdr" id="examBtn" aria-label="خطة الامتحان">📅 <span id="exd"></span></button>
+<button class="hdr" id="progBtn" aria-label="تقدّمي ونتائجي">📈</button>
+<button class="hdr" id="setBtn" aria-label="الإعدادات">⚙️</button>
 </div>
 </header>
 <div class="modes">
@@ -228,13 +280,14 @@ window.loadAzureSdk=function(){
 <div class="card">
 <div class="counter">الكلمة <span id="cnow">1</span> من <span id="ctot">1</span></div>
 <div class="slots" id="slots"></div>
-<input autocomplete="off" autocorrect="off" dir="rtl" id="ans" placeholder="اكتبي الكلمة هنا" spellcheck="false" type="text"/>
+<input aria-label="اكتبي الكلمة" autocapitalize="off" autocomplete="off" autocorrect="off" dir="rtl" id="ans" placeholder="اكتبي الكلمة هنا" spellcheck="false" type="text"/>
 <div class="hide" id="tileWrap">
-<div id="tileBox"></div>
+<label class="puz"><input id="puzzleToggle" type="checkbox"/> 🧩 وضع الألغاز (حروف الكلمة + حروف مضلِّلة)</label>
+<div id="tileBox" aria-live="polite"></div>
 <div class="tiles" id="tiles"></div>
 </div>
 <div class="hide" id="drawWrap">
-<div class="padwrap"><canvas id="pad"></canvas></div>
+<div class="padwrap"><canvas id="pad" role="img" aria-label="لوح الكتابة بالإصبع"></canvas></div>
 <div class="selfrow">
 <button class="ghost" id="pUndo">↩ تراجع</button>
 <button class="ghost" id="pClear">🗑 مسح</button>
@@ -246,8 +299,8 @@ window.loadAzureSdk=function(){
 <button id="pWrong" style="background:#e2725b;color:#fff;border-color:#a8442f;box-shadow:0 4px 0 #a8442f">✗ غلط</button>
 </div>
 </div>
-<div class="fb" id="fb"></div>
-<div class="msg" id="msg">اضغطي 🔊 لتسمعي الكلمة، واكتبيها.</div>
+<div class="fb" id="fb" aria-live="polite"></div>
+<div class="msg" id="msg" role="status" aria-live="polite">اضغطي 🔊 لتسمعي الكلمة، واكتبيها.</div>
 </div>
 <div class="bar"><i id="fill"></i></div>
 </div>
@@ -267,7 +320,7 @@ window.loadAzureSdk=function(){
 <button class="ghost" id="sentBtn">📝 وضع الجملة</button>
 </div>
 </div>
-<div class="win" id="win">
+<div class="win" id="win" role="dialog" aria-modal="true" aria-label="نتيجة الإملاء">
 <div>
 <div id="wIcon" style="font-size:3.4rem">🏆</div>
 <h2 id="wTitle">خلّصتِ الإملاء!</h2>
@@ -276,6 +329,7 @@ window.loadAzureSdk=function(){
 <div class="row" style="max-width:420px;margin:auto">
 <button id="againWrong" style="background:#fff">🔁 درّبي على الأخطاء</button>
 <button class="ghost" id="againAll" style="color:#fff;border-color:#fff">↺ النص كامل</button>
+<button class="ghost" id="winProg" style="color:#fff;border-color:#fff">📈 تقدّمي</button>
 </div>
 </div>
 </div>
@@ -286,6 +340,38 @@ window.loadAzureSdk=function(){
 <button onclick="applyText()">حفظ وابدأ</button>
 <button class="ghost" onclick="document.getElementById('dlg').close()">إلغاء</button>
 </div>
+<dialog id="examDlg" aria-labelledby="exTitle">
+<h3 id="exTitle" style="margin-top:0">📅 خطة الامتحان</h3>
+<div id="examSetup">
+<p class="msg" style="line-height:1.6">ألصقي نص الامتحان وحدّدي موعده. سنثبّته هنا ليبقى تدريبك عليه حتى لو تغيّر النص في صفحة القراءة.</p>
+<textarea id="exText" aria-label="نص الامتحان"></textarea>
+<div class="setrow"><label for="exDate">📆 موعد الامتحان</label><input id="exDate" type="date"/></div>
+<div class="row"><button class="main" id="exSave">📌 تثبيت النص وبدء الخطة</button></div>
+</div>
+<div id="examStatus" class="hide"></div>
+<div class="row" style="margin-top:10px"><button class="ghost" id="exClose">إغلاق</button></div>
+</dialog>
+<dialog id="mockDlg" aria-labelledby="mockTitle">
+<h3 id="mockTitle" style="margin-top:0">📝 اختبار تجريبي</h3>
+<div id="mockBody"></div>
+<div class="row" style="margin-top:10px"><button class="ghost" id="mockClose">إنهاء</button></div>
+</dialog>
+<dialog id="progDlg" aria-labelledby="progTitle">
+<h3 id="progTitle" style="margin-top:0">📈 تقدّمي ونتائجي</h3>
+<div id="progBody"></div>
+<div class="row" style="margin-top:10px"><button id="progPractice">🔁 درّبي على الكلمات الصعبة</button></div>
+<div class="row"><button class="ghost" id="progCsv">⬇ جدول الكلمات (CSV)</button><button class="ghost" id="progJson">⬇ نسخة احتياطية</button></div>
+<div class="row"><button class="ghost" id="progReset">🗑 مسح التقدّم</button><button class="ghost" id="progClose">إغلاق</button></div>
+</dialog>
+<dialog id="setDlg" aria-labelledby="setTitle">
+<h3 id="setTitle" style="margin-top:0">⚙️ الإعدادات</h3>
+<div class="setrow"><label for="setGoal">🎯 هدف اليوم (كلمات)</label><select id="setGoal"><option value="10">10</option><option value="20">20</option><option value="40">40</option><option value="80">80</option></select></div>
+<div class="setrow"><label for="setSize">🔠 حجم الخط</label><select id="setSize"><option value="m">عادي</option><option value="l">كبير</option></select></div>
+<div class="setrow"><label for="setHc">◐ تباين عالٍ</label><input id="setHc" type="checkbox"/></div>
+<div class="setrow"><label for="setRm">🎞 تقليل الحركة (بدون قصاصات)</label><input id="setRm" type="checkbox"/></div>
+<div class="setrow"><label for="setPuz">🧩 وضع الألغاز في الحروف</label><input id="setPuz" type="checkbox"/></div>
+<p class="msg" style="line-height:1.6">🔒 التقدّم والنتائج تُحفظ على هذا الجهاز فقط ولا تُرسل لأي جهة. صوت Sana يُطلب من Azure عند سماع الكلمة.</p>
+<div class="row" style="margin-top:10px"><button class="ghost" id="setClose">إغلاق</button></div>
 </dialog>
 <script>
 const DEFAULT_TEXT = "تدوينُ رؤوسِ الأقلامِ إحدى التقنياتِ التي دعتِ الحاجةُ إليها، نظرًا لكثرةِ وسائلِ الاتصالِ، فلمَ لا تبادرُ إلى استخدامِ هذه التقنية في دراسِتك؟";
@@ -327,43 +413,89 @@ function arVoice(){
   const vs = speechSynthesis.getVoices();
   return vs.find(v=>/^ar/i.test(v.lang)) || vs.find(v=>/arab/i.test(v.name)) || null;
 }
-let azureAudio=null; let azureToken=null; let azureTokenAt=0; let azureSynth=null;
-async function getAzureToken(){
-  const cfg=window.DICTATION_APP_CONFIG;
-  if(azureToken && (Date.now()-azureTokenAt)<8*60*1000) return azureToken;
-  const res=await fetch(cfg.TOKEN_ENDPOINT,{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
+let azureToken=null; let azureTokenAt=0;
+const CFGX=()=>window.DICTATION_APP_CONFIG||window.READING_APP_CONFIG||{};
+async function getAzureToken(force){
+  if(!force && azureToken && (Date.now()-azureTokenAt)<8*60*1000) return azureToken;
+  const res=await fetch(CFGX().TOKEN_ENDPOINT,{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
   if(!res.ok) throw new Error('Token HTTP '+res.status);
   const data=await res.json();
   if(!data.token) throw new Error('Token response missing token');
   azureToken=data.token; azureTokenAt=Date.now();
   return azureToken;
 }
-async function ensureAzureSynth(rate){
-  const SDK=await window.loadAzureSdk();
-  const token=await getAzureToken();
-  const cfg=SDK.SpeechConfig.fromAuthorizationToken(token, window.DICTATION_APP_CONFIG.REGION);
-  cfg.speechSynthesisVoiceName=window.DICTATION_APP_CONFIG.VOICE;
-  cfg.speechSynthesisLanguage='ar-JO';
-  const rr=Math.max(0.5,Math.min(1.3,Number(rate)||0.75));
-  const audio=SDK.AudioConfig.fromDefaultSpeakerOutput();
-  const synth=new SDK.SpeechSynthesizer(cfg,audio);
-  return {SDK,synth,rate:rr};
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ===== صوت Sana: كاش محلي + تحميل مسبق + صوت الجهاز احتياطيًا ===== */
+const TTS_CACHE='sana-tts-dict-v1';
+function ttsKey(text,r){ return new Request(location.origin+'/__tts__/d/'+encodeURIComponent([CFGX().VOICE,r,text].join('|'))); }
+async function ttsCacheGet(text,r){ try{ const c=await caches.open(TTS_CACHE); const m=await c.match(ttsKey(text,r)); return m?await m.blob():null; }catch(e){ return null; } }
+async function ttsCachePut(text,r,blob){ try{ const c=await caches.open(TTS_CACHE); await c.put(ttsKey(text,r),new Response(blob,{headers:{'Content-Type':blob.type}})); }catch(e){} }
+function ttsSsml(text,r){
+  const pct=Math.round((r-1)*100);
+  return '<speak version="1.0" xml:lang="ar-JO"><voice name="'+esc(CFGX().VOICE)+'"><prosody rate="'+pct+'%">'+esc(text)+'</prosody></voice></speak>';
+}
+async function ttsFetch(text,r,first=true){
+  const token=await getAzureToken(!first);
+  const res=await fetch('https://'+CFGX().REGION+'.tts.speech.microsoft.com/cognitiveservices/v1',{method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/ssml+xml','X-Microsoft-OutputFormat':'audio-24khz-48kbitrate-mono-mp3'},
+    body:ttsSsml(text,r),cache:'no-store'});
+  if((res.status===401||res.status===403) && first){ azureToken=null; return ttsFetch(text,r,false); }
+  if(!res.ok) throw new Error('TTS HTTP '+res.status);
+  const buf=await res.arrayBuffer(); if(!buf.byteLength) throw new Error('TTS empty');
+  return new Blob([buf],{type:'audio/mpeg'});
+}
+let sayGen=0, audioUnlocked=false;
+function unlockAudio(){
+  if(audioUnlocked) return; audioUnlocked=true;
+  try{ recAudio.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA='; const p=recAudio.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+}
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,unlockAudio,{once:true,passive:true}));
+async function playBlob(blob,gen){
+  const u=URL.createObjectURL(blob);
+  recAudio.onended=()=>URL.revokeObjectURL(u);
+  recAudio.src=u; recAudio.playbackRate=1;
+  try{ await recAudio.play(); }
+  catch(e){ if(gen===sayGen) msg('🔈 اضغطي «اسمعي الكلمة» لتسمعي الصوت.'); }
+}
+function speakFallback(text,r){
+  try{
+    if(!window.speechSynthesis) return false;
+    const v=arVoice(); const u=new SpeechSynthesisUtterance(text);
+    u.lang=v?v.lang:'ar-SA'; if(v) u.voice=v; u.rate=Math.max(.5,Math.min(1.2,r));
+    speechSynthesis.cancel(); speechSynthesis.speak(u); return true;
+  }catch(e){ return false; }
 }
 async function say(t,r){
   const text=String(t||'').trim(); if(!text) return;
-  const b=await recGet(t);
-  if(b){ try{ const u=URL.createObjectURL(b); recAudio.src=u; recAudio.playbackRate=1; recAudio.onended=()=>URL.revokeObjectURL(u); await recAudio.play(); return; }catch(e){} }
+  const gen=++sayGen;
+  try{ recAudio.pause(); }catch(e){}
+  const rec=await recGet(t);
+  if(gen!==sayGen) return;
+  if(rec){ await playBlob(rec,gen); return; }
+  const rr=Math.max(.5,Math.min(1.3,Number(r)||.75));
   try{
-    if(azureSynth){ try{azureSynth.close();}catch(e){} azureSynth=null; }
-    const got=await ensureAzureSynth(r); azureSynth=got.synth;
-    const ssml=`<speak version="1.0" xml:lang="ar-JO"><voice name="${window.DICTATION_APP_CONFIG.VOICE}"><prosody rate="${Math.round((got.rate-1)*100)}%">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;')}</prosody></voice></speak>`;
-    await new Promise((resolve,reject)=>{
-      got.synth.speakSsmlAsync(ssml,()=>{try{got.synth.close();}catch(e){} azureSynth=null; resolve();},err=>{try{got.synth.close();}catch(e){} azureSynth=null; reject(new Error(String(err||'Azure synthesis failed')));});
-    });
+    let blob=await ttsCacheGet(text,rr);
+    if(!blob){ blob=await ttsFetch(text,rr); ttsCachePut(text,rr,blob); }
+    if(gen!==sayGen) return;
+    await playBlob(blob,gen);
   }catch(e){
-    msg('⚠️ لم يعمل صوت Sana: '+(e?.message||e));
-    console.error(e);
+    console.error('say failed',e);
+    if(gen!==sayGen) return;
+    if(speakFallback(text,rr)) msg('🔈 صوت Sana غير متاح الآن، استخدمنا صوت الجهاز.');
+    else msg('⚠️ لم يعمل الصوت: '+esc(e&&e.message||e));
   }
+}
+const prefetchSet=new Set();
+async function prefetchTTS(text){
+  text=String(text||'').trim(); const rr=Math.max(.5,Math.min(1.3,Number(rate)||.75));
+  if(!text||prefetchSet.has(text+'|'+rr)||!navigator.onLine) return;
+  prefetchSet.add(text+'|'+rr);
+  try{
+    if(await recGet(text)) return;
+    if(await ttsCacheGet(text,rr)) return;
+    const b=await ttsFetch(text,rr); if(b.size>400) await ttsCachePut(text,rr,b);
+  }catch(e){ prefetchSet.delete(text+'|'+rr); }
 }
 
 let ac;
@@ -381,6 +513,7 @@ function beep(f,d){
 function msg(h){ $('msg').innerHTML = h; }
 function target(){ return sentenceMode ? words.join(' ') : words[idx]; }
 function build(txt){
+  restartSession();
   words = txt.trim().split(/\s+/).filter(Boolean);
   idx=0; score=0; tries=0; wrongs=[]; paint();
 }
@@ -390,11 +523,12 @@ function paint(){
   $('ctot').textContent = words.length;
   $('slots').textContent = sentenceMode ? '' : '_ '.repeat(spellNorm(t).length).trim();
   $('ans').value=''; $('fb').innerHTML='';
-  tileStr=''; if($('tiles').dataset.done) renderTiles();
+  tileStr=''; wst={hint:0,miss:0}; if(mode==='tile') renderTiles();
   if(mode==='draw') resetPad();
   const pct = words.length ? Math.round(idx/words.length*100) : 0;
   $('fill').style.width = pct+'%'; $('prog').textContent = pct; $('score').textContent = score;
   tries = 0;
+  setTimeout(()=>{ try{ prefetchTTS(target()); if(!sentenceMode) prefetchTTS(words[idx+1]); }catch(e){} },500);
   if(mode==='kb') $('ans').focus();
 }
 
@@ -415,7 +549,7 @@ function diff(a, b){   // a = المكتوب، b = الصحيح
   return out;
 }
 function showDiff(a, b){
-  $('fb').innerHTML = diff(a,b).map(x=>'<i class="'+x.k+'">'+x.c+'</i>').join('');
+  $('fb').innerHTML = diff(a,b).map(x=>'<i class="'+x.k+'">'+esc(x.c)+'</i>').join('');
 }
 
 /* ===== التحقّق ===== */
@@ -427,7 +561,8 @@ function check(){
   if(typed === right){
     beep(880,.12); setTimeout(()=>beep(1320,.14),90);
     score++;
-    $('fb').innerHTML = '<i class="g">'+target()+'</i>';
+    evOk();
+    $('fb').innerHTML = '<i class="g">'+esc(target())+'</i>';
     msg('✅ صح! أحسنتِ');
     if(sentenceMode || idx >= words.length-1){ idx = words.length; setTimeout(finish, 700); return; }
     idx++;
@@ -435,32 +570,39 @@ function check(){
     return;
   }
   tries++;
+  evMiss();
   beep(220,.18);
   showDiff(typed, right);
+  const tips = explain(typed, right);
+  const tipHtml = tips.length ? '<br>💡 '+tips.map(esc).join(' ') : '';
   if(tries >= 3){
     if(!wrongs.includes(target())) wrongs.push(target());
-    msg('الكلمة الصحيحة: <b>'+target()+'</b> — الحروف الملوّنة هي الغلط.');
+    evFail('fail');
+    msg('الكلمة الصحيحة: <b>'+esc(target())+'</b> — الحروف الملوّنة هي الغلط.'+tipHtml);
     if(sentenceMode || idx >= words.length-1){ idx = words.length; setTimeout(finish, 1800); return; }
     idx++;
-    setTimeout(()=>{ paint(); say(target(), rate); }, 2200);
+    setTimeout(()=>{ paint(); say(target(), rate); }, 2600);
   } else {
-    msg('مش مضبوط، جرّبي كمان مرة ('+tries+'/3) — الأحمر غلط والمخطوط ناقص.');
-    $('ans').select();
+    msg('مش مضبوط، جرّبي كمان مرة ('+tries+'/3) — الأحمر غلط والمخطوط ناقص.'+tipHtml);
+    if(mode==='kb') $('ans').select();
   }
 }
 function finish(){
   paint();
+  const S = Object.assign({}, sess);
   const total = sentenceMode ? 1 : words.length;
   $('wIcon').textContent = wrongs.length ? '💪' : '🏆';
   $('wTitle').textContent = wrongs.length ? 'خلّصتِ! في كلمات بتحتاج تمرين' : 'ممتازة! كل الكلمات صح';
-  $('wMsg').textContent = 'صح '+score+' من '+total;
+  flushSession(true); newSession(); renderGoal();
+  const st = streakDays();
+  $('wMsg').textContent = 'صح '+score+' من '+total + (S.hints?' • تلميحات '+S.hints:'') + (S.skips?' • تخطّي '+S.skips:'') + (st>1?' • 🔥 '+st+' أيام متتالية':'');
   $('wList').innerHTML = wrongs.length
-    ? '<div style="font-weight:700;border:none">كلمات للتمرين:</div>' + wrongs.map(w=>'<div>• '+w+'</div>').join('')
+    ? '<div style="font-weight:700;border:none">كلمات للتمرين:</div>' + wrongs.map(w=>'<div>• '+esc(w)+'</div>').join('')
     : '';
   $('againWrong').style.display = wrongs.length ? '' : 'none';
   $('win').classList.add('show');
   if(!wrongs.length){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.25),i*140));
-    for(let i=0;i<50;i++) confetti(); }
+    if(!reducedMotion()) for(let i=0;i<50;i++) confetti(); }
 }
 function confetti(){
   const c=document.createElement('div'); c.className='confetti';
@@ -488,21 +630,38 @@ function setMode(m){
   msg(m==='draw' ? 'اسمعي الكلمة واكتبيها بإصبعك، بعدين اضغطي 👁 لتشوفي الصح.'
     : (m==='tile' ? 'اسمعي الكلمة وركّبيها من الحروف 🔤' : 'اسمعي الكلمة واكتبيها ⌨️'));
 }
+const SIMILAR={'ت':'ثطن','ث':'تس','ه':'ةح','ة':'هت','ا':'أإل','أ':'اإؤ','إ':'اأ','آ':'اأ','س':'شصث','ش':'س','ص':'سض','ض':'صظ','ط':'تظ','ظ':'ضط','د':'ذ','ذ':'دز','ر':'ز','ز':'رذ','ك':'ق','ق':'ك','ي':'ىئ','ى':'ي','ع':'غ','غ':'ع','ح':'خج','خ':'ح','ج':'ح','ء':'أ','ئ':'يء','ؤ':'و','و':'ؤ','ب':'نت','ف':'ق','ل':'ا','م':'ن','ن':'ب'};
+function shuffleArr(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function puzzleLetters(){
+  const tl=[...new Set(spellNorm(target()).split('').filter(Boolean))];
+  const dis=[];
+  tl.forEach(c=>{ (SIMILAR[c]||'').split('').forEach(s=>{ if(!tl.includes(s)&&!dis.includes(s)) dis.push(s); }); });
+  const want=Math.min(4,Math.max(3,Math.ceil(tl.length/3)));
+  const extra=shuffleArr(LETTERS.filter(l=>l.length===1&&!tl.includes(l)&&!dis.includes(l)));
+  const picked=shuffleArr(dis).slice(0,want);
+  while(picked.length<want && extra.length) picked.push(extra.pop());
+  return shuffleArr(tl.concat(picked));
+}
+let tileSig='';
 function renderTiles(){
   $('tileBox').textContent = tileStr || ' ';
   const box = $('tiles');
-  if(box.dataset.done) return;
-  box.dataset.done = '1';
-  LETTERS.forEach(L=>{
+  const puzzle = !!(prefs.puzzle && !sentenceMode && target());
+  const sig = puzzle ? 'p:'+idx+':'+spellNorm(target()) : 'full';
+  if(sig===tileSig && box.childElementCount) return;
+  tileSig = sig; box.innerHTML = '';
+  (puzzle ? puzzleLetters() : LETTERS).forEach(L=>{
     const b=document.createElement('button');
-    b.textContent = L;
+    b.textContent = L; b.setAttribute('aria-label','حرف '+L);
     b.onclick = ()=>{ tileStr += L; renderTiles(); };
     box.appendChild(b);
   });
-  const sp=document.createElement('button');
-  sp.className='sp'; sp.textContent='مسافة';
-  sp.onclick=()=>{ tileStr += ' '; renderTiles(); };
-  box.appendChild(sp);
+  if(!puzzle){
+    const sp=document.createElement('button');
+    sp.className='sp'; sp.textContent='مسافة';
+    sp.onclick=()=>{ tileStr += ' '; renderTiles(); };
+    box.appendChild(sp);
+  }
   const bs=document.createElement('button');
   bs.className='sp'; bs.textContent='⌫ حرف';
   bs.onclick=()=>{ tileStr = tileStr.slice(0,-1); renderTiles(); };
@@ -568,27 +727,30 @@ $('pShow').onclick = ()=>{
   $('selfMark').classList.remove('hide');
   msg('قارني كتابتك مع الكلمة، واضغطي صح أو غلط.');
 };
-$('pRight').onclick = ()=>{ score++; beep(880,.12); setTimeout(()=>beep(1320,.14),90); nextAfterMark(); };
-$('pWrong').onclick = ()=>{ if(!wrongs.includes(target())) wrongs.push(target()); beep(220,.18); nextAfterMark(); };
+$('pRight').onclick = ()=>{ score++; evOk(); beep(880,.12); setTimeout(()=>beep(1320,.14),90); nextAfterMark(); };
+$('pWrong').onclick = ()=>{ evFail('self'); if(!wrongs.includes(target())) wrongs.push(target()); beep(220,.18); nextAfterMark(); };
 $('hearBtn').onclick = ()=> say(target(), rate);
 $('slowBtn').onclick = ()=> say(target(), .5);
 $('okBtn').onclick = check;
 $('ans').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); check(); } });
 $('hintBtn').onclick = ()=>{
+  evHint();
   const t = spellNorm(target());
   const shown = Math.min(t.length, 1 + Math.floor(tries));
   $('slots').textContent = t.slice(0, shown).split('').join(' ') + ' ' + '_ '.repeat(Math.max(0,t.length-shown)).trim();
   msg('التلميح: الكلمة فيها <b>'+t.length+'</b> حروف.');
 };
 $('skipBtn').onclick = ()=>{
+  evFail('skip');
   if(!wrongs.includes(target())) wrongs.push(target());
   if(sentenceMode || idx >= words.length-1){ idx = words.length; finish(); return; }
   idx++; paint(); say(target(), rate);
 };
-$('resetBtn').onclick = ()=>{ $('win').classList.remove('show'); idx=0; score=0; wrongs=[]; sentenceMode=false;
+$('resetBtn').onclick = ()=>{ restartSession(); $('win').classList.remove('show'); idx=0; score=0; wrongs=[]; sentenceMode=false;
   $('sentBtn').textContent='📝 وضع الجملة'; paint(); };
 $('editBtn').onclick = ()=>{ $('ta').value = words.join(' '); $('dlg').showModal(); };
 $('sentBtn').onclick = ()=>{
+  restartSession();
   sentenceMode = !sentenceMode;
   $('sentBtn').textContent = sentenceMode ? '🔠 وضع الكلمة' : '📝 وضع الجملة';
   idx=0; score=0; wrongs=[]; paint();
@@ -603,6 +765,353 @@ $('againWrong').onclick = ()=>{
 $('againAll').onclick = ()=>{ $('win').classList.remove('show'); build(words.join(' ')); };
 function applyText(){ const v=$('ta').value.trim(); if(v) build(v); $('dlg').close(); }
 if(window.speechSynthesis) speechSynthesis.onvoiceschanged = ()=>{};
+
+/* ===== حفظ التقدّم والنتائج (على هذا الجهاز فقط) ===== */
+const PK='dictationProgress.v1', PREF_K='dictationPrefs.v1';
+const PUNCT_RE=/[\u060C\u061B\u061F.,;:!?"'()\[\]«»…\-–—_\/\\]/g;
+function dKey(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function freshP(){ return {v:1,sessions:[],words:{},dayCounts:{},exam:null}; }
+function loadP(){ try{ const o=JSON.parse(localStorage.getItem(PK)||'null'); if(o&&o.v===1&&o.words&&Array.isArray(o.sessions)) return Object.assign(freshP(),o); }catch(e){} return freshP(); }
+let P = loadP();
+function saveP(){ try{ localStorage.setItem(PK,JSON.stringify(P)); }catch(e){} }
+const PREF_DEF={goal:20,size:'m',hc:false,rm:false,puzzle:false};
+let prefs = (()=>{ try{ return Object.assign({},PREF_DEF,JSON.parse(localStorage.getItem(PREF_K)||'{}')); }catch(e){ return Object.assign({},PREF_DEF); } })();
+function savePrefs(){ try{ localStorage.setItem(PREF_K,JSON.stringify(prefs)); }catch(e){} }
+function reducedMotion(){ return !!prefs.rm || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+
+let wst = {hint:0,miss:0};   // حالة الكلمة الحالية
+let sess = null;
+function newSession(){ sess={t:Date.now(),right:0,wrong:0,hints:0,skips:0,helped:0,saved:false}; }
+newSession();
+function wrec(w){
+  const k=spellNorm(w); if(!k) return null;
+  return P.words[k] || (P.words[k]={w:String(w).replace(PUNCT_RE,'').replace(/\s+/g,' ').trim(),n:0,ok:0,bad:0,skip:0,miss:0,hint:0,streak:0,last:0});
+}
+function todayCount(){ return P.dayCounts[dKey()]||0; }
+function renderGoal(){ $('dg').textContent=todayCount(); $('dgm').textContent=prefs.goal; }
+function bumpDay(){
+  const k=dKey(); P.dayCounts[k]=(P.dayCounts[k]||0)+1;
+  const keys=Object.keys(P.dayCounts).sort(); while(keys.length>90) delete P.dayCounts[keys.shift()];
+  renderGoal();
+  if(P.dayCounts[k]===prefs.goal){ try{ beep(1047,.2); }catch(e){} setTimeout(()=>msg('🎯 حققتِ هدف اليوم! أحسنتِ ⭐'),900); }
+}
+function streakDays(){ let n=0; const d=new Date(); while((P.dayCounts[dKey(d)]||0)>0){ n++; d.setDate(d.getDate()-1); } return n; }
+function evOk(){
+  sess.right++; const clean=!wst.hint && !wst.miss; if(!clean) sess.helped++;
+  if(!sentenceMode){ const r=wrec(target()); if(r){ r.n++; r.ok++; r.last=Date.now(); r.streak=clean?r.streak+1:0; if(clean){ r.cd=r.cd||[]; const k=dKey(); if(!r.cd.includes(k)) r.cd.push(k); r.cd=r.cd.slice(-8); } } }
+  bumpDay(); saveP();
+}
+function evFail(kind){
+  sess.wrong++; if(kind==='skip') sess.skips++;
+  if(!sentenceMode){ const r=wrec(target()); if(r){ r.n++; if(kind==='skip') r.skip++; else r.bad++; r.streak=0; r.last=Date.now(); } }
+  saveP();
+}
+function evMiss(){ wst.miss++; if(!sentenceMode){ const r=wrec(target()); if(r) r.miss++; } saveP(); }
+function evHint(){ wst.hint++; sess.hints++; if(!sentenceMode){ const r=wrec(target()); if(r) r.hint++; } saveP(); }
+function flushSession(final){
+  if(!sess || sess.saved || (sess.right+sess.wrong)===0) return;
+  sess.saved=true;
+  P.sessions.push({t:sess.t,mode:mode,sentence:!!sentenceMode,total:sentenceMode?1:words.length,right:sess.right,wrong:sess.wrong,hints:sess.hints,skips:sess.skips,helped:sess.helped,sec:Math.round((Date.now()-sess.t)/1000),complete:!!final});
+  P.sessions=P.sessions.slice(-100); saveP();
+}
+function restartSession(){ flushSession(false); newSession(); }
+window.addEventListener('pagehide',()=>flushSession(false));
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') restartSession(); });
+
+function weakList(){
+  return Object.values(P.words)
+    .filter(r=>(r.bad+r.skip+r.miss+r.hint)>0 && r.streak<2)
+    .map(r=>({r,wt:r.bad*3+r.skip*2+r.miss+r.hint*0.5}))
+    .sort((a,b)=>b.wt-a.wt || b.r.last-a.r.last).map(x=>x.r);
+}
+function modeName(s){ return s.sentence?'جملة':({kb:'لوحة',tile:'حروف',draw:'إصبع',exam:'اختبار'}[s.mode]||s.mode); }
+function renderProg(){
+  const ws=Object.values(P.words);
+  const ok=ws.reduce((s,r)=>s+r.ok,0), fail=ws.reduce((s,r)=>s+r.bad+r.skip,0);
+  const hints=ws.reduce((s,r)=>s+r.hint,0), skips=ws.reduce((s,r)=>s+r.skip,0);
+  const weak=weakList();
+  const mastered=ws.filter(r=>(r.bad+r.skip+r.miss+r.hint)>0 && r.streak>=2).length;
+  const base=new Date(), days=[];
+  for(let i=6;i>=0;i--){ const d=new Date(base); d.setDate(base.getDate()-i); days.push({n:P.dayCounts[dKey(d)]||0,l:d.toLocaleDateString('ar',{weekday:'short'})}); }
+  const mx=Math.max(prefs.goal,1,...days.map(d=>d.n));
+  const bars=days.map(d=>'<div><i style="height:'+Math.round(d.n/mx*50)+'px"></i>'+(d.n||'')+'<br>'+esc(d.l)+'</div>').join('');
+  const chips=weak.slice(0,30).map(r=>'<span class="pg-chip">'+esc(r.w)+'<small>'+(r.bad?'❌'+r.bad+' ':'')+(r.skip?'⏭'+r.skip+' ':'')+(r.hint?'💡'+r.hint+' ':'')+(r.miss?'✗'+r.miss:'')+'</small></span>').join('');
+  const live = (sess && (sess.right+sess.wrong)>0) ? [{t:sess.t,mode:mode,sentence:sentenceMode,right:sess.right,wrong:sess.wrong,hints:sess.hints,skips:sess.skips,live:true}] : [];
+  const rows = live.concat(P.sessions.slice(-8).reverse()).map(s=>{
+    const dt=new Date(s.t);
+    return esc(dt.toLocaleDateString('ar',{day:'numeric',month:'short'})+' '+dt.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'}))
+      +' — '+esc(modeName(s))+' — صح '+s.right+' من '+(s.right+s.wrong)
+      +(s.hints?' • 💡'+s.hints:'')+(s.skips?' • ⏭'+s.skips:'')+(s.live?' • (الجلسة الحالية)':'');
+  }).join('<br>');
+  $('progBody').innerHTML =
+    '<div class="pg-grid">'
+    +'<div class="pg-box"><b>'+(ok+fail?Math.round(ok/(ok+fail)*100):0)+'%</b><span>نسبة النجاح</span></div>'
+    +'<div class="pg-box"><b>'+todayCount()+'/'+prefs.goal+'</b><span>هدف اليوم</span></div>'
+    +'<div class="pg-box"><b>'+streakDays()+'</b><span>أيام متتالية 🔥</span></div>'
+    +'<div class="pg-box"><b>'+ws.length+'</b><span>كلمات تدرّبتِ عليها</span></div>'
+    +'<div class="pg-box"><b>'+hints+'</b><span>تلميحات 💡</span></div>'
+    +'<div class="pg-box"><b>'+skips+'</b><span>تخطّي ⏭</span></div></div>'
+    +'<div class="pg-h">آخر 7 أيام (كلمات صحيحة يوميًا)</div><div class="pg-bars">'+bars+'</div>'
+    +'<div class="pg-h">🎯 كلمات تحتاج تدريب ('+weak.length+')</div>'
+    +(weak.length ? '<div class="pg-chips">'+chips+'</div><p class="msg">❌ فشلت بعد 3 محاولات • ⏭ تخطّيتِها • 💡 تلميحات • ✗ محاولات خاطئة. تخرج الكلمة من القائمة بعد كتابتها صح مرتين متتاليتين بدون مساعدة.</p>' : '<p class="msg">ممتاز! لا توجد كلمات صعبة حاليًا 🎉</p>')
+    +(mastered?'<p class="msg">✅ أتقنتِ '+mastered+' كلمة كانت صعبة.</p>':'')
+    +'<div class="pg-h">آخر الجلسات</div><div class="pg-list">'+(rows||'لا توجد جلسات بعد.')+'</div>';
+  $('progPractice').disabled = !weak.length;
+}
+function csvEsc(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function downloadBlob(name,type,content){
+  const b=new Blob([content],{type}), a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+$('progBtn').onclick = ()=>{ renderProg(); $('progDlg').showModal(); };
+$('winProg').onclick = ()=>{ $('win').classList.remove('show'); renderProg(); $('progDlg').showModal(); };
+$('progClose').onclick = ()=> $('progDlg').close();
+$('progPractice').onclick = ()=>{
+  const list=weakList().slice(0,10).map(r=>r.w).filter(Boolean); if(!list.length) return;
+  $('progDlg').close(); $('win').classList.remove('show');
+  sentenceMode=false; $('sentBtn').textContent='📝 وضع الجملة';
+  build(list.join(' ')); say(target(), rate);
+  msg('🎯 تدريب على كلمات الضعف ('+list.length+')');
+};
+$('progCsv').onclick = ()=>{
+  const weakSet=new Set(weakList().map(r=>spellNorm(r.w)));
+  const head=['الكلمة','عدد المرات','صحيح','فشل','تخطّي','محاولات خاطئة','تلميحات','صحيح متتالي','آخر مرة','تحتاج تدريب'];
+  const rows=Object.values(P.words).map(r=>[r.w,r.n,r.ok,r.bad,r.skip,r.miss,r.hint,r.streak,r.last?new Date(r.last).toISOString().slice(0,16).replace('T',' '):'',weakSet.has(spellNorm(r.w))?'نعم':'لا']);
+  downloadBlob('dictation-words-'+dKey()+'.csv','text/csv;charset=utf-8','\ufeff'+[head].concat(rows).map(r=>r.map(csvEsc).join(',')).join('\r\n'));
+};
+$('progJson').onclick = ()=> downloadBlob('dictation-progress-'+dKey()+'.json','application/json',JSON.stringify({exportedAt:new Date().toISOString(),progress:P,prefs},null,2));
+$('progReset').onclick = ()=>{
+  if(confirm('هل تريدين مسح كل التقدّم والنتائج المحفوظة على هذا الجهاز؟')){ P=freshP(); saveP(); newSession(); renderGoal(); renderProg(); }
+};
+
+/* ===== تنبيهات إملائية تعليمية ===== */
+const SIMSETS=['ضظ','سصث','تط','دذ','ذز','كق','عغ','حخج'];
+function alignOps(a,b){
+  const m=a.length,n=b.length, d=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) d[i][0]=i; for(let j=0;j<=n;j++) d[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  const ops=[]; let i=m,j=n;
+  while(i>0||j>0){
+    if(i>0&&j>0&&a[i-1]===b[j-1]&&d[i][j]===d[i-1][j-1]){ i--;j--; }
+    else if(i>0&&j>0&&d[i][j]===d[i-1][j-1]+1){ ops.unshift({t:'sub',a:a[i-1],b:b[j-1],pos:j-1}); i--;j--; }
+    else if(j>0&&d[i][j]===d[i][j-1]+1){ ops.unshift({t:'ins',b:b[j-1],pos:j-1}); j--; }
+    else { ops.unshift({t:'del',a:a[i-1],pos:j}); i--; }
+  }
+  return ops;
+}
+function tipFor(op,right){
+  if(op.t==='ins') return 'نقص حرف «'+op.b+'».';
+  if(op.t==='del') return 'زاد حرف «'+op.a+'» ليس في الكلمة.';
+  const a=op.a,b=op.b;
+  if(a==='ه'&&b==='ة') return 'آخر الكلمة تاء مربوطة (ة) وليست هاءً.';
+  if(a==='ة'&&b==='ه') return 'هنا هاء (ه) وليست تاءً مربوطة.';
+  if(a==='ت'&&b==='ة') return 'التاء المربوطة (ة) في آخر الاسم المؤنث تختلف عن التاء المفتوحة (ت).';
+  if(a==='ة'&&b==='ت') return 'هنا تاء مفتوحة (ت) وليست مربوطة.';
+  if(a==='ي'&&b==='ى') return 'الألف المقصورة (ى) تُكتب بلا نقطتين.';
+  if(a==='ى'&&b==='ي') return 'هنا ياء (ي) بنقطتين وليست ألفًا مقصورة.';
+  if(op.pos===0 && right.startsWith('ال') && /[أإ]/.test(a) && b==='ا') return 'همزة «ال» التعريف همزة وصل، فتُكتب ألفًا بدون همزة.';
+  if(/[أإآ]/.test(a) && b==='ا') return 'هذه ألف عادية بدون همزة (همزة وصل).';
+  if(/[أإآ]/.test(b) && /[اأإآ]/.test(a)) return 'انتبهي للهمزة: الصحيح «'+b+'» (همزة قطع).';
+  if('ؤئءأإ'.includes(a) && 'ؤئءأإ'.includes(b)) return 'انتبهي لشكل الهمزة: الصحيح «'+b+'».';
+  if(SIMSETS.some(s=>s.includes(a)&&s.includes(b))) return '«'+a+'» و«'+b+'» حرفان متشابهان في الصوت — الصحيح «'+b+'».';
+  return 'الحرف «'+b+'» بدل «'+a+'».';
+}
+function explain(typed,right){
+  const out=[]; alignOps(typed,right).forEach(op=>{ const x=tipFor(op,right); if(x && !out.includes(x)) out.push(x); });
+  return out.slice(0,2);
+}
+
+/* ===== الإعدادات ===== */
+function applyPrefs(){
+  document.body.classList.toggle('sz-l',prefs.size==='l');
+  document.body.classList.toggle('hc',!!prefs.hc);
+  document.body.classList.toggle('rm',!!prefs.rm);
+  $('setGoal').value=String(prefs.goal); $('setSize').value=prefs.size;
+  $('setHc').checked=!!prefs.hc; $('setRm').checked=!!prefs.rm;
+  $('setPuz').checked=!!prefs.puzzle; $('puzzleToggle').checked=!!prefs.puzzle;
+  renderGoal();
+}
+$('setBtn').onclick = ()=> $('setDlg').showModal();
+$('setClose').onclick = ()=> $('setDlg').close();
+$('setGoal').onchange = e=>{ prefs.goal=Number(e.target.value)||20; savePrefs(); applyPrefs(); };
+$('setSize').onchange = e=>{ prefs.size=e.target.value; savePrefs(); applyPrefs(); };
+$('setHc').onchange = e=>{ prefs.hc=e.target.checked; savePrefs(); applyPrefs(); };
+$('setRm').onchange = e=>{ prefs.rm=e.target.checked; savePrefs(); applyPrefs(); };
+const onPuz = e=>{ prefs.puzzle=e.target.checked; savePrefs(); applyPrefs(); if(mode==='tile'){ tileStr=''; renderTiles(); } };
+$('setPuz').onchange = onPuz; $('puzzleToggle').onchange = onPuz;
+applyPrefs();
+// وصولية: اسم نصي لكل زر لا يملك aria-label
+document.querySelectorAll('button').forEach(b=>{ if(!b.getAttribute('aria-label')){ const l=(b.title||b.textContent||'').trim(); if(l) b.setAttribute('aria-label',l); } });
+
+/* ===== خطة الامتحان: تثبيت النص + تدريب يومي + اختبار تجريبي ===== */
+function addDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return dKey(d); }
+function daysBetween(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000); }
+function daysLeft(){ return P.exam ? daysBetween(dKey(),P.exam.date) : null; }
+function tokensOf(text){ return String(text||'').trim().split(/\s+/).filter(x=>spellNorm(x)); }
+function examUnique(){ const m=new Map(); tokensOf(P.exam.text).forEach(tk=>{ const k=spellNorm(tk); if(!m.has(k)) m.set(k,tk); }); return [...m].map(([k,token])=>({k,token})); }
+function isMastered(r){ return !!r && r.streak>=2 && (r.cd||[]).length>=2; }
+function examStats(){
+  const list=examUnique(); let mastered=0, unseen=0, weak=0;
+  list.forEach(x=>{ const r=P.words[x.k]; if(!r||!r.n) unseen++; else if(isMastered(r)) mastered++; else if((r.bad+r.skip+r.miss+r.hint)>0) weak++; });
+  const mocks=P.exam.mocks||[]; const last=mocks.length?mocks[mocks.length-1].score:null;
+  const ratio=list.length?mastered/list.length:0;
+  const ready=Math.round(100*(last==null ? Math.min(ratio*0.85,0.85) : (0.6*ratio+0.4*(last/100))));
+  return {list,total:list.length,mastered,unseen,weak,learning:list.length-mastered-unseen-weak,last,ready};
+}
+function todayQueue(limit){
+  const st=examStats(), today=dKey(), out=[], seen=new Set();
+  const add=x=>{ if(!seen.has(x.k)){ seen.add(x.k); out.push(x.token); } };
+  const wk=[], uns=[], lrn=[], due=[];
+  st.list.forEach(x=>{
+    const r=P.words[x.k];
+    if(!r||!r.n) uns.push(x);
+    else if(isMastered(r)){ const last=(r.cd||[]).slice(-1)[0]; if(last && daysBetween(last,today)>=2) due.push(x); }
+    else if((r.bad+r.skip+r.miss+r.hint)>0) wk.push({x,wt:r.bad*3+r.skip*2+r.miss+r.hint*.5});
+    else lrn.push(x);
+  });
+  wk.sort((a,b)=>b.wt-a.wt).forEach(o=>add(o.x)); uns.forEach(add); lrn.forEach(add); due.forEach(add);
+  return out.slice(0,limit);
+}
+function focusFor(d){
+  if(d>=5) return 'تعلّم الكلمات الجديدة: «تدريب اليوم» (10–20 دقيقة) بدون ضغط.';
+  if(d>=3) return '«تدريب اليوم» + التركيز على الكلمات الصعبة، واختبار تجريبي قصير إن أمكن.';
+  if(d===2) return 'اختبار تجريبي كامل، ثم تدريب على أخطائه.';
+  if(d===1) return 'مراجعة خفيفة + اختبار تجريبي واحد، ثم نوم مبكر 😴';
+  if(d===0) return 'يوم الامتحان: مراجعة سريعة للكلمات الصعبة فقط (5 دقائق).';
+  return 'انتهى موعد الامتحان 🎉';
+}
+function renderExamPill(){
+  const dl=daysLeft(); const el=$('exd');
+  el.textContent = dl==null ? '' : (dl>=0 ? dl+' يوم' : 'انتهى');
+}
+function renderExam(){
+  const has=!!P.exam;
+  $('examSetup').classList.toggle('hide',has); $('examStatus').classList.toggle('hide',!has);
+  if(!has){ $('exText').value=words.join(' '); $('exDate').value=addDays(7); $('exDate').min=dKey(); return; }
+  const dl=daysLeft(), st=examStats();
+  const verdict = st.ready>=90?'جاهزة 🏆':st.ready>=70?'قريبة جدًا 👏':st.ready>=40?'في الطريق 💪':'ابدئي التدريب 🌱';
+  const plan=[]; for(let d=Math.min(dl,7); d>=0; d--) plan.push('<div'+(d===dl?' style="font-weight:800"':'')+'>باقي '+d+' يوم — '+esc(focusFor(d))+'</div>');
+  const mocks=(P.exam.mocks||[]).slice(-5).map(m=>m.score+'%').join(' ← ');
+  const un=examUnique().map(x=>({x,r:P.words[x.k]})).filter(o=>!isMastered(o.r)).slice(0,30)
+    .map(o=>'<span class="pg-chip" style="border-color:#e6dcc6">'+esc(spellNorm(o.x.token)?o.x.token.replace(PUNCT_RE,''):o.x.token)+(o.r&&o.r.n?'':'<small>جديدة</small>')+'</span>').join('');
+  $('examStatus').innerHTML =
+    '<div class="ex-big">'+(dl>=0?'باقي '+dl+' يوم':'انتهى الامتحان')+'</div>'
+    +'<div class="pg-h">الجاهزية: '+st.ready+'% — '+verdict+'</div><div class="ex-bar"><i style="width:'+st.ready+'%"></i></div>'
+    +'<div class="pg-grid"><div class="pg-box"><b>'+st.mastered+'/'+st.total+'</b><span>كلمات متقنة ✅</span></div>'
+    +'<div class="pg-box"><b>'+st.weak+'</b><span>تحتاج تدريب ⚠️</span></div>'
+    +'<div class="pg-box"><b>'+st.unseen+'</b><span>لم تُجرَّب 🌱</span></div></div>'
+    +'<p class="msg" style="line-height:1.7"><b>اليوم:</b> '+esc(focusFor(dl))+'</p>'
+    +'<div class="row"><button class="main" id="exPractice">🎯 تدريب اليوم</button><button class="hear" id="exMock">📝 اختبار تجريبي</button></div>'
+    +(mocks?'<p class="msg">الاختبارات التجريبية: '+esc(mocks)+'</p>':'')
+    +'<div class="pg-h">الخطة</div><div class="pg-list">'+plan.join('')+'</div>'
+    +(un?'<div class="pg-h">كلمات لم تُتقن بعد</div><div class="pg-chips">'+un+'</div>':'<p class="msg">🏆 كل كلمات النص متقنة!</p>')
+    +'<div class="row" style="margin-top:10px"><button class="ghost" id="exEdit">✎ تعديل النص/الموعد</button><button class="ghost" id="exCancel">🗑 إلغاء الخطة</button></div>';
+  $('exPractice').onclick=()=>{
+    const q=todayQueue(Math.max(10,Math.min(40,prefs.goal)));
+    if(!q.length){ msg('🏆 كل الكلمات متقنة! جرّبي اختبارًا تجريبيًا.'); $('examDlg').close(); return; }
+    $('examDlg').close(); $('win').classList.remove('show');
+    sentenceMode=false; $('sentBtn').textContent='📝 وضع الجملة';
+    build(q.join(' ')); say(target(),rate); msg('🎯 تدريب اليوم: '+q.length+' كلمة');
+  };
+  $('exMock').onclick=()=>{ $('examDlg').close(); startMock(); };
+  $('exEdit').onclick=()=>{ $('examSetup').classList.remove('hide'); $('examStatus').classList.add('hide'); $('exText').value=P.exam.text; $('exDate').value=P.exam.date; };
+  $('exCancel').onclick=()=>{ if(confirm('إلغاء خطة الامتحان؟ (يبقى تقدّم الكلمات محفوظًا)')){ P.exam=null; saveP(); renderExamPill(); renderExam(); } };
+}
+$('examBtn').onclick=()=>{ renderExam(); $('examDlg').showModal(); };
+$('exClose').onclick=()=>$('examDlg').close();
+$('exSave').onclick=()=>{
+  const text=$('exText').value.replace(/\s+/g,' ').trim(), date=$('exDate').value;
+  if(tokensOf(text).length<3){ alert('ألصقي نص الامتحان (3 كلمات على الأقل).'); return; }
+  if(!date || date<dKey()){ alert('اختاري موعدًا من اليوم فصاعدًا.'); return; }
+  const same = P.exam && P.exam.text===text;
+  P.exam={text,date,created:(P.exam&&P.exam.created)||Date.now(),mocks:same?(P.exam.mocks||[]):[]};
+  saveP(); renderExamPill(); renderExam();
+};
+
+/* --- اختبار تجريبي: جملة جملة، بدون تلميح، سماع مرتين فقط --- */
+function examSentences(){
+  const parts=String(P.exam.text).replace(/\s+/g,' ').trim().match(/[^.!؟?؛]+[.!؟?؛]*/g)||[P.exam.text];
+  const out=[];
+  parts.map(s=>s.trim()).filter(Boolean).forEach(s=>{
+    const w=s.split(' ').filter(Boolean);
+    if(w.length<=12){ out.push(s); return; }
+    let c=[]; w.forEach((tok,i)=>{ c.push(tok); if((/[،,]$/.test(tok)&&c.length>=5)||i===w.length-1){ out.push(c.join(' ')); c=[]; } });
+  });
+  return out;
+}
+function levD(a,b){ const m=a.length,n=b.length; if(!m) return n; if(!n) return m; let p=Array.from({length:n+1},(_,j)=>j); for(let i=1;i<=m;i++){ const c=[i]; for(let j=1;j<=n;j++) c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1)); p=c; } return p[n]; }
+function gradeSentence(sent,typed){
+  const rt=sent.split(/\s+/).filter(x=>spellNorm(x)), rk=rt.map(spellNorm);
+  const tt=String(typed||'').split(/\s+/).map(spellNorm).filter(Boolean);
+  const m=rk.length, n=tt.length, d=Array.from({length:m+1},()=>new Array(n+1).fill(0));
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++) d[i][j]= rk[i-1]===tt[j-1] ? d[i-1][j-1]+1 : Math.max(d[i-1][j],d[i][j-1]);
+  const okIdx=new Set(), used=new Set(); let i=m, j=n;
+  while(i>0&&j>0){ if(rk[i-1]===tt[j-1]){ okIdx.add(i-1); used.add(j-1); i--; j--; } else if(d[i-1][j]>=d[i][j-1]) i--; else j--; }
+  const wrong=[];
+  rt.forEach((tok,ix)=>{
+    if(okIdx.has(ix)) return;
+    let best=null, bl=1e9; tt.forEach((c,ci)=>{ if(used.has(ci)) return; const l=levD(c,rk[ix]); if(l<bl){ bl=l; best=c; } });
+    const near = best && bl<=Math.max(2,Math.floor(rk[ix].length/2));
+    wrong.push({ix,tok,tips: near?explain(best,rk[ix]):[], missing:!near});
+  });
+  return {rt,okIdx,wrong,right:okIdx.size,total:m};
+}
+let mock=null;
+function startMock(){
+  const sents=examSentences(); if(!sents.length) return;
+  mock={sents,i:0,ans:[],plays:0,t:Date.now()};
+  $('mockDlg').showModal(); showMockQ(true);
+}
+function showMockQ(autoPlay){
+  const m=mock; m.plays=0;
+  $('mockTitle').textContent='📝 اختبار تجريبي — الجملة '+(m.i+1)+' من '+m.sents.length;
+  $('mockBody').innerHTML='<p class="msg" style="line-height:1.6">اسمعي الجملة (مرتين فقط) ثم اكتبيها كاملة. لا يوجد تلميح في الاختبار.</p>'
+    +'<button class="hear" id="mockPlay" style="width:100%"></button>'
+    +'<textarea id="mockAns" dir="rtl" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="اكتبي الجملة" placeholder="اكتبي ما سمعتِه هنا"></textarea>'
+    +'<div class="row"><button class="main" id="mockNext">'+(m.i===m.sents.length-1?'✓ إنهاء وتصحيح':'التالي ➜')+'</button></div>';
+  const playBtn=$('mockPlay');
+  const label=()=>{ playBtn.textContent='🔊 اسمعي الجملة (بقي '+(2-m.plays)+')'; playBtn.disabled=m.plays>=2; };
+  const play=()=>{ if(m.plays>=2) return; m.plays++; label(); say(m.sents[m.i],rate); };
+  label(); playBtn.onclick=play;
+  $('mockNext').onclick=()=>{
+    m.ans[m.i]=$('mockAns').value; m.i++;
+    if(m.i>=m.sents.length) finishMock(); else showMockQ(true);
+  };
+  if(autoPlay) play();
+  setTimeout(()=>{ try{ $('mockAns').focus(); }catch(e){} },100);
+}
+function finishMock(){
+  const m=mock; let R=0,T=0; const wrongTokens=[]; const blocks=[];
+  m.sents.forEach((s,i)=>{
+    const g=gradeSentence(s,m.ans[i]); R+=g.right; T+=g.total;
+    const wr=new Set(g.wrong.map(w=>w.ix));
+    const html=g.rt.map((tok,ix)=>'<span class="'+(wr.has(ix)?'mk-bad':'mk-ok')+'">'+esc(tok)+'</span>').join(' ');
+    const tips=g.wrong.map(w=>'«'+esc(w.tok.replace(PUNCT_RE,''))+'»: '+(w.missing?'لم تُكتب أو كُتبت بشكل بعيد.':w.tips.map(esc).join(' '))).join('<br>');
+    blocks.push('<div class="mk-sent">'+html+(tips?'<div class="mk-tip">'+tips+'</div>':'')+'</div>');
+    g.rt.forEach((tok,ix)=>{ const ok=!wr.has(ix); const r=wrec(tok); if(!r) return; r.n++; r.last=Date.now();
+      if(ok){ r.ok++; r.streak++; r.cd=r.cd||[]; const k=dKey(); if(!r.cd.includes(k)) r.cd.push(k); r.cd=r.cd.slice(-8); } else { r.bad++; r.streak=0; wrongTokens.push(tok); } });
+  });
+  const score=T?Math.round(R/T*100):0;
+  P.exam.mocks=(P.exam.mocks||[]).concat([{t:Date.now(),score,right:R,total:T}]).slice(-20);
+  P.sessions.push({t:m.t,mode:'exam',sentence:false,total:T,right:R,wrong:T-R,hints:0,skips:0,helped:0,sec:Math.round((Date.now()-m.t)/1000),complete:true});
+  P.sessions=P.sessions.slice(-100);
+  for(let i=0;i<R;i++) bumpDay();
+  saveP(); renderExamPill();
+  const verdict=score>=90?'ممتازة 🏆':score>=70?'جيد جدًا 👏':score>=50?'جيد 💪':'نحتاج مزيدًا من التدريب 🌱';
+  $('mockTitle').textContent='📝 نتيجة الاختبار التجريبي';
+  $('mockBody').innerHTML='<div class="ex-big">'+score+'%</div><p class="msg" style="text-align:center">'+verdict+' — '+R+' من '+T+' كلمة صحيحة</p>'
+    +blocks.join('')
+    +'<div class="row"><button class="main" id="mockFix"'+(wrongTokens.length?'':' disabled')+'>🔁 درّبي على الأخطاء ('+wrongTokens.length+')</button></div>';
+  $('mockFix').onclick=()=>{
+    $('mockDlg').close(); $('win').classList.remove('show');
+    sentenceMode=false; $('sentBtn').textContent='📝 وضع الجملة';
+    build([...new Set(wrongTokens)].join(' ')); say(target(),rate); msg('🔁 تدريب على أخطاء الاختبار');
+  };
+  mock=null;
+}
+$('mockClose').onclick=()=>{ if(!mock || confirm('إنهاء الاختبار دون حفظ النتيجة؟')){ mock=null; $('mockDlg').close(); } };
+renderExamPill();
 
 // القراءة هي المصدر الرئيسي للنص. عند فتح الإملاء نستخدم آخر نص محفوظ،
 // وأي تغيير جديد من صفحة القراءة يصل هنا تلقائيًا عبر storage event.
