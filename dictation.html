@@ -237,6 +237,32 @@ button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visib
 .pg-chip{font-family:var(--font-read);font-size:1.15rem;background:#fff;border:2px solid #ffd7cc;border-radius:12px;padding:4px 10px}
 .pg-chip small{font-family:var(--font-ui);font-size:.7rem;color:#a8442f;margin-inline-start:6px}
 .pg-list{font-size:.82rem;line-height:1.9;background:#fff;border:2px solid #e6dcc6;border-radius:12px;padding:6px 10px;max-height:150px;overflow:auto}
+.pg-today{background:linear-gradient(135deg,#fff 0%,#f3f9f4 100%);border:2px solid #cfe5d4;border-radius:18px;padding:14px;margin:8px 0}
+.pg-kicker{font-size:.9rem;color:#53665a;font-weight:800}
+.pg-today-main{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.pg-today-main b{font-size:1.8rem;color:#246b44}
+.pg-today-main span{font-size:.9rem;color:#59636a}
+.pg-track,.pg-day-track{height:14px;background:#e8e9e4;border-radius:999px;overflow:hidden}
+.pg-track i{display:block;height:100%;background:linear-gradient(90deg,#72c18b,#2f8f5b);border-radius:999px;transition:width .25s ease}
+.pg-encourage,.pg-note{margin:8px 0 0;color:#59636a;font-size:.88rem;line-height:1.7}
+.pg-simple-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:9px 0}
+.pg-simple-box{background:#fff;border:2px solid #e6dcc6;border-radius:14px;padding:9px;text-align:center}
+.pg-simple-box b{display:block;font-size:1.3rem;color:#2f3437}
+.pg-simple-box span{font-size:.78rem;color:#687078}
+.pg-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:end;height:112px;background:#fff;border:2px solid #e6dcc6;border-radius:14px;padding:8px}
+.pg-day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font-size:.72rem;color:#687078}
+.pg-day-count{height:14px;font-weight:800;color:#2f3437}
+.pg-day-track{display:flex;align-items:flex-end;width:72%;height:62px;background:#f0f0ec;border-radius:7px;overflow:hidden}
+.pg-day-track i{display:block;width:100%;min-height:2px;background:linear-gradient(0deg,#2f8f5b,#8fcea0);border-radius:7px 7px 0 0}
+.pg-review{background:#fff;border:2px solid #e6dcc6;border-radius:16px;padding:11px;margin:10px 0}
+.pg-review h4{margin:0 0 7px}
+.pg-action{margin-top:9px}
+.pg-action button{width:100%}
+.pg-parent{margin-top:12px;background:#f7f5ef;border:1px solid #e6dcc6;border-radius:14px;padding:9px}
+.pg-parent summary{cursor:pointer;font-weight:800;padding:4px}
+.pg-parent[open] summary{margin-bottom:8px}
+.pg-parent .pg-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:430px){.pg-simple-grid{gap:5px}.pg-simple-box{padding:7px 4px}.pg-simple-box b{font-size:1.1rem}.pg-simple-box span{font-size:.7rem}.pg-today-main b{font-size:1.55rem}}
 dialog{max-height:92vh;overflow:auto}
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;font-weight:700}
 .setrow select{min-height:44px;font-family:inherit;font-size:1rem;border-radius:10px;border:2px solid #d9cdb2;padding:4px 8px;background:#fff}
@@ -360,9 +386,7 @@ dialog input[type=date]{font-family:inherit;font-size:1rem;border:2px solid #d9c
 <dialog id="progDlg" aria-labelledby="progTitle">
 <h3 id="progTitle" style="margin-top:0">📈 تقدّمي ونتائجي</h3>
 <div id="progBody"></div>
-<div class="row" style="margin-top:10px"><button id="progPractice">🔁 درّبي على الكلمات الصعبة</button></div>
-<div class="row"><button class="ghost" id="progCsv">⬇ جدول الكلمات (CSV)</button><button class="ghost" id="progJson">⬇ نسخة احتياطية</button></div>
-<div class="row"><button class="ghost" id="progReset">🗑 مسح التقدّم</button><button class="ghost" id="progClose">إغلاق</button></div>
+<div class="row" style="margin-top:10px"><button class="ghost" id="progClose">إغلاق</button></div>
 </dialog>
 <dialog id="setDlg" aria-labelledby="setTitle">
 <h3 id="setTitle" style="margin-top:0">⚙️ الإعدادات</h3>
@@ -834,30 +858,48 @@ function renderProg(){
   const mastered=ws.filter(r=>(r.bad+r.skip+r.miss+r.hint)>0 && r.streak>=2).length;
   const base=new Date(), days=[];
   for(let i=6;i>=0;i--){ const d=new Date(base); d.setDate(base.getDate()-i); days.push({n:P.dayCounts[dKey(d)]||0,l:d.toLocaleDateString('ar',{weekday:'short'})}); }
-  const mx=Math.max(prefs.goal,1,...days.map(d=>d.n));
-  const bars=days.map(d=>'<div><i style="height:'+Math.round(d.n/mx*50)+'px"></i>'+(d.n||'')+'<br>'+esc(d.l)+'</div>').join('');
-  const chips=weak.slice(0,30).map(r=>'<span class="pg-chip">'+esc(r.w)+'<small>'+(r.bad?'❌'+r.bad+' ':'')+(r.skip?'⏭'+r.skip+' ':'')+(r.hint?'💡'+r.hint+' ':'')+(r.miss?'✗'+r.miss:'')+'</small></span>').join('');
-  const live = (sess && (sess.right+sess.wrong)>0) ? [{t:sess.t,mode:mode,sentence:sentenceMode,right:sess.right,wrong:sess.wrong,hints:sess.hints,skips:sess.skips,live:true}] : [];
-  const rows = live.concat(P.sessions.slice(-8).reverse()).map(s=>{
+  const mx=Math.max(1,...days.map(d=>d.n));
+  const bars=days.map(d=>'<div class="pg-day" title="'+d.n+' كلمات صحيحة"><span class="pg-day-count">'+(d.n||'')+'</span><div class="pg-day-track"><i style="height:'+Math.round(d.n/mx*100)+'%"></i></div><span>'+esc(d.l)+'</span></div>').join('');
+  const chips=weak.slice(0,8).map(r=>'<span class="pg-chip">'+esc(r.w)+'</span>').join('');
+  const weakDetails=weak.slice(0,30).map(r=>'<span class="pg-chip">'+esc(r.w)+'<small>'+(r.bad?'❌'+r.bad+' ':'')+(r.skip?'⏭'+r.skip+' ':'')+(r.hint?'💡'+r.hint+' ':'')+(r.miss?'✗'+r.miss:'')+'</small></span>').join('');
+  const live=(sess&&(sess.right+sess.wrong)>0)?[{t:sess.t,mode:mode,sentence:sentenceMode,right:sess.right,wrong:sess.wrong,hints:sess.hints,skips:sess.skips,live:true}]:[];
+  const rows=live.concat(P.sessions.slice(-8).reverse()).map(s=>{
     const dt=new Date(s.t);
     return esc(dt.toLocaleDateString('ar',{day:'numeric',month:'short'})+' '+dt.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'}))
       +' — '+esc(modeName(s))+' — صح '+s.right+' من '+(s.right+s.wrong)
       +(s.hints?' • 💡'+s.hints:'')+(s.skips?' • ⏭'+s.skips:'')+(s.live?' • (الجلسة الحالية)':'');
   }).join('<br>');
-  $('progBody').innerHTML =
-    '<div class="pg-grid">'
+  const today=todayCount(), goal=Math.max(1,Number(prefs.goal)||20);
+  const pct=Math.min(100,Math.round(today/goal*100)), activeDays=days.filter(d=>d.n>0).length;
+  const encouragement=today>=goal?'رائع! تحقق هدف اليوم 🎉':today===0?'كل بداية تدريب إنجاز؛ ابدأ بكلمة واحدة ⭐':'أحسنت! بقي '+(goal-today)+' كلمة للوصول إلى هدف اليوم.';
+  const weakSection=weak.length
+    ? '<div class="pg-chips">'+chips+'</div><p class="pg-note">هذه كلمات للمراجعة، ويمكن فتح التفاصيل لمعرفة المحاولات والتلميحات.</p>'
+    : '<p class="pg-note">ممتاز! لا توجد كلمات تحتاج إلى مراجعة حاليًا 🎉</p>';
+  $('progBody').innerHTML=
+    '<section class="pg-today"><div class="pg-kicker">تقدّم اليوم</div>'
+    +'<div class="pg-today-main"><b>'+today+' من '+goal+'</b><span>كلمة صحيحة من هدف اليوم</span></div>'
+    +'<div class="pg-track" role="progressbar" aria-label="تقدّم هدف اليوم" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div>'
+    +'<p class="pg-encourage">'+encouragement+'</p></section>'
+    +'<div class="pg-simple-grid">'
+    +'<div class="pg-simple-box"><b>'+activeDays+' من 7</b><span>أيام تدريب هذا الأسبوع</span></div>'
+    +'<div class="pg-simple-box"><b>'+ws.length+'</b><span>كلمات تم التدريب عليها</span></div>'
+    +'<div class="pg-simple-box"><b>'+weak.length+'</b><span>كلمات للمراجعة</span></div></div>'
+    +'<div class="pg-h">الكلمات الصحيحة خلال آخر 7 أيام</div><div class="pg-week" role="img" aria-label="عدد الكلمات الصحيحة خلال آخر سبعة أيام">'+bars+'</div>'
+    +'<section class="pg-review"><h4>مراجعة الكلمات</h4>'+weakSection
+    +'<div class="pg-action"><button id="progPractice" '+(!weak.length?'disabled':'')+'>🔁 ابدأ مراجعة الكلمات</button></div></section>'
+    +'<details class="pg-parent"><summary>تفاصيل وليّ الأمر</summary>'
+    +'<p class="pg-note">نسبة النجاح تُحسب من الإجابات الصحيحة مقارنةً بالإجابات الصحيحة والخاطئة المسجلة.</p>'
+    +'<div class="pg-grid">'
     +'<div class="pg-box"><b>'+(ok+fail?Math.round(ok/(ok+fail)*100):0)+'%</b><span>نسبة النجاح</span></div>'
-    +'<div class="pg-box"><b>'+todayCount()+'/'+prefs.goal+'</b><span>هدف اليوم</span></div>'
-    +'<div class="pg-box"><b>'+streakDays()+'</b><span>أيام متتالية 🔥</span></div>'
-    +'<div class="pg-box"><b>'+ws.length+'</b><span>كلمات تدرّبتِ عليها</span></div>'
-    +'<div class="pg-box"><b>'+hints+'</b><span>تلميحات 💡</span></div>'
-    +'<div class="pg-box"><b>'+skips+'</b><span>تخطّي ⏭</span></div></div>'
-    +'<div class="pg-h">آخر 7 أيام (كلمات صحيحة يوميًا)</div><div class="pg-bars">'+bars+'</div>'
-    +'<div class="pg-h">🎯 كلمات تحتاج تدريب ('+weak.length+')</div>'
-    +(weak.length ? '<div class="pg-chips">'+chips+'</div><p class="msg">❌ فشلت بعد 3 محاولات • ⏭ تخطّيتِها • 💡 تلميحات • ✗ محاولات خاطئة. تخرج الكلمة من القائمة بعد كتابتها صح مرتين متتاليتين بدون مساعدة.</p>' : '<p class="msg">ممتاز! لا توجد كلمات صعبة حاليًا 🎉</p>')
-    +(mastered?'<p class="msg">✅ أتقنتِ '+mastered+' كلمة كانت صعبة.</p>':'')
-    +'<div class="pg-h">آخر الجلسات</div><div class="pg-list">'+(rows||'لا توجد جلسات بعد.')+'</div>';
-  $('progPractice').disabled = !weak.length;
+    +'<div class="pg-box"><b>'+streakDays()+'</b><span>أيام متتالية</span></div>'
+    +'<div class="pg-box"><b>'+hints+'</b><span>تلميحات</span></div>'
+    +'<div class="pg-box"><b>'+skips+'</b><span>مرات التخطي</span></div>'
+    +'<div class="pg-box"><b>'+mastered+'</b><span>كلمات صعبة أُتقنت</span></div>'
+    +'<div class="pg-box"><b>'+P.sessions.length+'</b><span>جلسات محفوظة</span></div></div>'
+    +(weak.length?'<div class="pg-h">تفاصيل كلمات المراجعة</div><div class="pg-chips">'+weakDetails+'</div><p class="pg-note">تُعدّ الكلمة التي واجهت صعوبة فيها متقنة بعد كتابتها صحيحة مرتين متتاليتين دون مساعدة.</p>':'')
+    +'<div class="pg-h">آخر الجلسات</div><div class="pg-list">'+(rows||'لا توجد جلسات بعد.')+'</div>'
+    +'<div class="row"><button class="ghost" id="progCsv">⬇ جدول الكلمات (CSV)</button><button class="ghost" id="progJson">⬇ نسخة احتياطية</button></div>'
+    +'<div class="row"><button class="ghost" id="progReset">🗑 مسح التقدّم</button></div></details>';
 }
 function csvEsc(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function downloadBlob(name,type,content){
