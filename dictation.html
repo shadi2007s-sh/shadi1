@@ -262,6 +262,30 @@ button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visib
 .pg-parent summary{cursor:pointer;font-weight:800;padding:4px}
 .pg-parent[open] summary{margin-bottom:8px}
 .pg-parent .pg-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pg-report-button{width:100%;padding:13px;margin:10px 0;background:#edf5ff;border:2px solid #8cb6d8;color:#244c68;box-shadow:0 3px 0 #8cb6d8}
+#reportDlg{width:min(960px,96vw);max-width:96vw}
+.report-lead{color:#59636a;line-height:1.7;margin:0 0 12px}
+.report-section{background:#fff;border:1px solid #e3ddce;border-radius:15px;padding:12px;margin:11px 0}
+.report-section h4{margin:0 0 8px}
+.report-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.report-card{background:#f8f7f2;border:1px solid #e3ddce;border-radius:12px;padding:9px;text-align:center}
+.report-card b{display:block;font-size:1.3rem}
+.report-card span{font-size:.78rem;color:#687078}
+.report-explain{font-size:.83rem;color:#687078;line-height:1.65;margin:8px 0 0}
+.report-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end}
+.report-day{text-align:center;font-size:.72rem;color:#687078}
+.report-day b{display:block;color:#2f3437}
+.report-day-track{height:72px;background:#f0f0ec;border-radius:8px;display:flex;align-items:flex-end;overflow:hidden;margin:4px 0}
+.report-day-track i{display:block;width:100%;min-height:2px;background:linear-gradient(0deg,#2f8f5b,#8fcea0);border-radius:8px 8px 0 0}
+.report-table-wrap{overflow:auto}
+.report-table{border-collapse:collapse;width:100%;min-width:760px;font-size:.82rem}
+.report-table th,.report-table td{padding:7px 8px;border-bottom:1px solid #e8e4da;text-align:right;vertical-align:top}
+.report-table th{background:#f6f4ee;white-space:nowrap}
+.report-table tr:last-child td{border-bottom:0}
+.report-empty{padding:10px;background:#f8f7f2;border-radius:10px;color:#59636a}
+.report-toolbar{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.report-toolbar button{flex:1 1 180px}
+@media(max-width:520px){.report-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.report-section{padding:9px}.report-days{gap:3px}.report-day{font-size:.65rem}}
 @media(max-width:430px){.pg-simple-grid{gap:5px}.pg-simple-box{padding:7px 4px}.pg-simple-box b{font-size:1.1rem}.pg-simple-box span{font-size:.7rem}.pg-today-main b{font-size:1.55rem}}
 dialog{max-height:92vh;overflow:auto}
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;font-weight:700}
@@ -387,6 +411,11 @@ dialog input[type=date]{font-family:inherit;font-size:1rem;border:2px solid #d9c
 <h3 id="progTitle" style="margin-top:0">📈 تقدّمي ونتائجي</h3>
 <div id="progBody"></div>
 <div class="row" style="margin-top:10px"><button class="ghost" id="progClose">إغلاق</button></div>
+</dialog>
+<dialog id="reportDlg" aria-labelledby="reportTitle">
+<h3 id="reportTitle" style="margin-top:0">📋 تقرير وليّ الأمر</h3>
+<div id="reportBody"></div>
+<div class="row" style="margin-top:10px"><button class="ghost" id="reportClose">إغلاق التقرير</button></div>
 </dialog>
 <dialog id="setDlg" aria-labelledby="setTitle">
 <h3 id="setTitle" style="margin-top:0">⚙️ الإعدادات</h3>
@@ -850,6 +879,91 @@ function weakList(){
     .sort((a,b)=>b.wt-a.wt || b.r.last-a.r.last).map(x=>x.r);
 }
 function modeName(s){ return s.sentence?'جملة':({kb:'لوحة',tile:'حروف',draw:'إصبع',exam:'اختبار'}[s.mode]||s.mode); }
+function reportDate(ts,withTime){
+  if(!ts) return '—';
+  const d=new Date(ts);
+  return d.toLocaleDateString('ar-JO',{day:'numeric',month:'short',year:'numeric'})
+    +(withTime?' '+d.toLocaleTimeString('ar-JO',{hour:'2-digit',minute:'2-digit'}):'');
+}
+function parentSessions(){
+  const live=(sess&&(sess.right+sess.wrong)>0)?[{t:sess.t,mode:mode,sentence:sentenceMode,right:sess.right,wrong:sess.wrong,hints:sess.hints,skips:sess.skips,helped:sess.helped,live:true,sec:Math.round((Date.now()-sess.t)/1000)}]:[];
+  return live.concat(P.sessions.slice(-20).reverse());
+}
+function renderParentReport(){
+  const ws=Object.values(P.words), weak=weakList();
+  const weakKeys=new Set(weak.map(r=>spellNorm(r.w)));
+  const mastered=ws.filter(r=>(r.bad+r.skip+r.miss+r.hint)>0&&r.streak>=2);
+  const masteredKeys=new Set(mastered.map(r=>spellNorm(r.w)));
+  const ok=ws.reduce((n,r)=>n+r.ok,0), bad=ws.reduce((n,r)=>n+r.bad,0);
+  const skips=ws.reduce((n,r)=>n+r.skip,0), hints=ws.reduce((n,r)=>n+r.hint,0);
+  const misses=ws.reduce((n,r)=>n+r.miss,0), attempts=ok+bad+skips;
+  const accuracy=attempts?Math.round(ok/attempts*100):0;
+  const now=new Date(), currentDays=[], previousTotal=0;
+  let currentTotal=0, previous=0;
+  for(let i=6;i>=0;i--){
+    const d=new Date(now); d.setDate(now.getDate()-i);
+    const n=P.dayCounts[dKey(d)]||0; currentTotal+=n;
+    currentDays.push({label:d.toLocaleDateString('ar-JO',{weekday:'short'}),date:d.toLocaleDateString('ar-JO',{day:'numeric',month:'short'}),n});
+  }
+  for(let i=13;i>=7;i--){ const d=new Date(now); d.setDate(now.getDate()-i); previous+=P.dayCounts[dKey(d)]||0; }
+  const active=currentDays.filter(d=>d.n>0).length;
+  const mx=Math.max(1,...currentDays.map(d=>d.n));
+  const daysHtml=currentDays.map(d=>'<div class="report-day" title="'+esc(d.date)+': '+d.n+' كلمة صحيحة"><b>'+d.n+'</b><div class="report-day-track"><i style="height:'+Math.round(d.n/mx*100)+'%"></i></div>'+esc(d.label)+'</div>').join('');
+  const trend=currentTotal>previous
+    ? 'زاد عدد الكلمات الصحيحة '+(currentTotal-previous)+' مقارنةً بالأيام السبعة السابقة.'
+    : currentTotal<previous
+      ? 'قلّ عدد الكلمات الصحيحة '+(previous-currentTotal)+' مقارنةً بالأيام السبعة السابقة.'
+      : 'عدد الكلمات الصحيحة مماثل للأيام السبعة السابقة.';
+  const wordStatus=r=>{
+    const key=spellNorm(r.w);
+    if(weakKeys.has(key)) return 'تحتاج مراجعة';
+    if(masteredKeys.has(key)) return 'تجاوزت صعوبة سابقة';
+    return 'تدرّب عليها دون صعوبات مسجلة';
+  };
+  const ordered=ws.slice().sort((a,b)=>{
+    const rank=x=>weakKeys.has(spellNorm(x.w))?0:masteredKeys.has(spellNorm(x.w))?1:2;
+    return rank(a)-rank(b)||(b.last||0)-(a.last||0);
+  });
+  const wordRows=ordered.map(r=>{
+    const denom=r.ok+r.bad+r.skip, pct=denom?Math.round(r.ok/denom*100):0;
+    return '<tr><td>'+esc(r.w)+'</td><td>'+wordStatus(r)+'</td><td>'+r.n+'</td><td>'+r.ok+' ('+pct+'%)</td><td>'+r.bad+'</td><td>'+r.skip+'</td><td>'+r.hint+'</td><td>'+r.miss+'</td><td>'+r.streak+'</td><td>'+esc(reportDate(r.last,false))+'</td></tr>';
+  }).join('');
+  const sessions=parentSessions();
+  const sessionRows=sessions.map(x=>{
+    const total=x.right+x.wrong;
+    const status=x.live?'جارية الآن':x.complete?'مكتملة':'انتهت قبل الإكمال';
+    const duration=x.sec?Math.floor(x.sec/60)+' د '+(x.sec%60)+' ث':'—';
+    return '<tr><td>'+esc(reportDate(x.t,true))+'</td><td>'+esc(modeName(x))+'</td><td>'+x.right+' من '+total+'</td><td>'+x.wrong+'</td><td>'+x.hints+'</td><td>'+x.skips+'</td><td>'+duration+'</td><td>'+status+'</td></tr>';
+  }).join('');
+  $('reportBody').innerHTML=
+    '<p class="report-lead">هذا التقرير يلخّص التقدّم المحفوظ على هذا الجهاز. يُحدّث عند فتحه، ويمكن تنزيله للاحتفاظ بنسخة أو مشاركتها.</p>'
+    +'<section class="report-section"><h4>ملخص الأداء</h4><div class="report-cards">'
+    +'<div class="report-card"><b>'+ws.length+'</b><span>كلمات تم التدريب عليها</span></div>'
+    +'<div class="report-card"><b>'+attempts+'</b><span>إجابات مسجلة</span></div>'
+    +'<div class="report-card"><b>'+ok+'</b><span>إجابات صحيحة</span></div>'
+    +'<div class="report-card"><b>'+accuracy+'%</b><span>دقة الإجابات</span></div>'
+    +'<div class="report-card"><b>'+weak.length+'</b><span>كلمات تحتاج مراجعة</span></div>'
+    +'<div class="report-card"><b>'+mastered.length+'</b><span>كلمات تجاوزت صعوبة سابقة</span></div>'
+    +'</div><p class="report-explain">الدقة = الإجابات الصحيحة ÷ (الصحيحة + الخاطئة + المتخطاة). التلميحات والمحاولات الخاطئة قبل الإجابة الصحيحة تُعرض منفصلة.</p></section>'
+    +'<section class="report-section"><h4>النشاط اليومي</h4><div class="report-cards">'
+    +'<div class="report-card"><b>'+currentTotal+'</b><span>كلمات صحيحة في آخر 7 أيام</span></div>'
+    +'<div class="report-card"><b>'+previous+'</b><span>كلمات صحيحة في الأيام السبعة السابقة</span></div>'
+    +'<div class="report-card"><b>'+active+' من 7</b><span>أيام تدريب نشطة</span></div></div>'
+    +'<p class="report-explain">'+trend+' الأشرطة والأرقام تعرض عدد الكلمات الصحيحة في كل يوم.</p>'
+    +'<div class="report-days" role="img" aria-label="الكلمات الصحيحة في آخر سبعة أيام">'+daysHtml+'</div></section>'
+    +'<section class="report-section"><h4>تفاصيل الكلمات ('+ordered.length+')</h4>'
+    +(wordRows?'<div class="report-table-wrap"><table class="report-table"><thead><tr><th>الكلمة</th><th>الحالة</th><th>المحاولات</th><th>الصحيح</th><th>الأخطاء</th><th>التخطّي</th><th>التلميحات</th><th>محاولات خاطئة</th><th>صحيح متتالٍ</th><th>آخر تدريب</th></tr></thead><tbody>'+wordRows+'</tbody></table></div>':'<p class="report-empty">لا توجد كلمات مسجلة بعد. سيظهر التقرير بعد بدء التدريب.</p>')
+    +'<p class="report-explain">«تجاوزت صعوبة سابقة» تعني أن الكلمة التي احتاجت إلى مساعدة كُتبت صحيحة مرتين متتاليتين دون تلميح.</p></section>'
+    +'<section class="report-section"><h4>الجلسات الأخيرة ('+sessions.length+')</h4>'
+    +(sessionRows?'<div class="report-table-wrap"><table class="report-table"><thead><tr><th>التاريخ والوقت</th><th>نوع التدريب</th><th>الصحيح من الإجمالي</th><th>الخطأ</th><th>التلميحات</th><th>التخطّي</th><th>المدة</th><th>الحالة</th></tr></thead><tbody>'+sessionRows+'</tbody></table></div>':'<p class="report-empty">لا توجد جلسات محفوظة بعد.</p>')
+    +'<p class="report-explain">يعرض التقرير الجلسة الحالية إن وُجدت، إضافةً إلى آخر 20 جلسة محفوظة.</p></section>'
+    +'<section class="report-section"><h4>تنزيل التقرير</h4><div class="report-toolbar">'
+    +'<button class="ghost" id="progCsv">⬇ تقرير الكلمات (CSV)</button>'
+    +'<button class="ghost" id="reportSessionsCsv">⬇ تقرير الجلسات (CSV)</button>'
+    +'<button class="ghost" id="progJson">⬇ نسخة كاملة (JSON)</button>'
+    +'<button class="ghost" id="progReset">🗑 مسح التقدّم</button></div>'
+    +'<p class="report-explain">ملف JSON يتضمن التقدّم والإعدادات، ويمكن حفظه كنسخة احتياطية.</p></section>';
+}
 function renderProg(){
   const ws=Object.values(P.words);
   const ok=ws.reduce((s,r)=>s+r.ok,0), fail=ws.reduce((s,r)=>s+r.bad+r.skip,0);
@@ -887,19 +1001,7 @@ function renderProg(){
     +'<div class="pg-h">الكلمات الصحيحة خلال آخر 7 أيام</div><div class="pg-week" role="img" aria-label="عدد الكلمات الصحيحة خلال آخر سبعة أيام">'+bars+'</div>'
     +'<section class="pg-review"><h4>مراجعة الكلمات</h4>'+weakSection
     +'<div class="pg-action"><button id="progPractice" '+(!weak.length?'disabled':'')+'>🔁 ابدأ مراجعة الكلمات</button></div></section>'
-    +'<details class="pg-parent"><summary>تفاصيل وليّ الأمر</summary>'
-    +'<p class="pg-note">نسبة النجاح تُحسب من الإجابات الصحيحة مقارنةً بالإجابات الصحيحة والخاطئة المسجلة.</p>'
-    +'<div class="pg-grid">'
-    +'<div class="pg-box"><b>'+(ok+fail?Math.round(ok/(ok+fail)*100):0)+'%</b><span>نسبة النجاح</span></div>'
-    +'<div class="pg-box"><b>'+streakDays()+'</b><span>أيام متتالية</span></div>'
-    +'<div class="pg-box"><b>'+hints+'</b><span>تلميحات</span></div>'
-    +'<div class="pg-box"><b>'+skips+'</b><span>مرات التخطي</span></div>'
-    +'<div class="pg-box"><b>'+mastered+'</b><span>كلمات صعبة أُتقنت</span></div>'
-    +'<div class="pg-box"><b>'+P.sessions.length+'</b><span>جلسات محفوظة</span></div></div>'
-    +(weak.length?'<div class="pg-h">تفاصيل كلمات المراجعة</div><div class="pg-chips">'+weakDetails+'</div><p class="pg-note">تُعدّ الكلمة التي واجهت صعوبة فيها متقنة بعد كتابتها صحيحة مرتين متتاليتين دون مساعدة.</p>':'')
-    +'<div class="pg-h">آخر الجلسات</div><div class="pg-list">'+(rows||'لا توجد جلسات بعد.')+'</div>'
-    +'<div class="row"><button class="ghost" id="progCsv">⬇ جدول الكلمات (CSV)</button><button class="ghost" id="progJson">⬇ نسخة احتياطية</button></div>'
-    +'<div class="row"><button class="ghost" id="progReset">🗑 مسح التقدّم</button></div></details>';
+    +'<button class="pg-report-button" id="reportBtn">📋 فتح التقرير المفصّل لوليّ الأمر</button>';
 }
 function csvEsc(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
 function downloadBlob(name,type,content){
@@ -910,9 +1012,12 @@ function downloadBlob(name,type,content){
 $('progBtn').onclick = ()=>{ renderProg(); $('progDlg').showModal(); };
 $('winProg').onclick = ()=>{ $('win').classList.remove('show'); renderProg(); $('progDlg').showModal(); };
 $('progClose').onclick = ()=> $('progDlg').close();
+$('reportClose').onclick = ()=> $('reportDlg').close();
 document.addEventListener('click',e=>{
   const btn=e.target.closest('button'); if(!btn) return;
-  if(btn.id==='progPractice'){
+  if(btn.id==='reportBtn'){
+    renderParentReport(); $('reportDlg').showModal();
+  }else if(btn.id==='progPractice'){
     const list=weakList().slice(0,10).map(r=>r.w).filter(Boolean); if(!list.length) return;
     $('progDlg').close(); $('win').classList.remove('show');
     sentenceMode=false; $('sentBtn').textContent='📝 وضع الجملة';
@@ -923,10 +1028,14 @@ document.addEventListener('click',e=>{
     const head=['الكلمة','عدد المرات','صحيح','فشل','تخطّي','محاولات خاطئة','تلميحات','صحيح متتالي','آخر مرة','تحتاج تدريب'];
     const rows=Object.values(P.words).map(r=>[r.w,r.n,r.ok,r.bad,r.skip,r.miss,r.hint,r.streak,r.last?new Date(r.last).toISOString().slice(0,16).replace('T',' '):'',weakSet.has(spellNorm(r.w))?'نعم':'لا']);
     downloadBlob('dictation-words-'+dKey()+'.csv','text/csv;charset=utf-8','\ufeff'+[head].concat(rows).map(r=>r.map(csvEsc).join(',')).join('\r\n'));
+  }else if(btn.id==='reportSessionsCsv'){
+    const head=['التاريخ والوقت','نوع التدريب','الصحيح','الخاطئ','الإجمالي','التلميحات','التخطّي','المدة بالثواني','الحالة'];
+    const rows=P.sessions.slice(-20).reverse().map(x=>[reportDate(x.t,true),modeName(x),x.right,x.wrong,x.right+x.wrong,x.hints,x.skips,x.sec,x.complete?'مكتملة':'انتهت قبل الإكمال']);
+    downloadBlob('dictation-sessions-'+dKey()+'.csv','text/csv;charset=utf-8','\ufeff'+[head].concat(rows).map(r=>r.map(csvEsc).join(',')).join('\r\n'));
   }else if(btn.id==='progJson'){
     downloadBlob('dictation-progress-'+dKey()+'.json','application/json',JSON.stringify({exportedAt:new Date().toISOString(),progress:P,prefs},null,2));
   }else if(btn.id==='progReset'){
-    if(confirm('هل تريدين مسح كل التقدّم والنتائج المحفوظة على هذا الجهاز؟')){ P=freshP(); saveP(); newSession(); renderGoal(); renderProg(); }
+    if(confirm('هل تريدين مسح كل التقدّم والنتائج المحفوظة على هذا الجهاز؟')){ P=freshP(); saveP(); newSession(); renderGoal(); renderProg(); renderParentReport(); }
   }
 });
 /* ===== تنبيهات إملائية تعليمية ===== */
