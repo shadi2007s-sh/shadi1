@@ -910,24 +910,25 @@ function downloadBlob(name,type,content){
 $('progBtn').onclick = ()=>{ renderProg(); $('progDlg').showModal(); };
 $('winProg').onclick = ()=>{ $('win').classList.remove('show'); renderProg(); $('progDlg').showModal(); };
 $('progClose').onclick = ()=> $('progDlg').close();
-$('progPractice').onclick = ()=>{
-  const list=weakList().slice(0,10).map(r=>r.w).filter(Boolean); if(!list.length) return;
-  $('progDlg').close(); $('win').classList.remove('show');
-  sentenceMode=false; $('sentBtn').textContent='📝 وضع الجملة';
-  build(list.join(' ')); say(target(), rate);
-  msg('🎯 تدريب على كلمات الضعف ('+list.length+')');
-};
-$('progCsv').onclick = ()=>{
-  const weakSet=new Set(weakList().map(r=>spellNorm(r.w)));
-  const head=['الكلمة','عدد المرات','صحيح','فشل','تخطّي','محاولات خاطئة','تلميحات','صحيح متتالي','آخر مرة','تحتاج تدريب'];
-  const rows=Object.values(P.words).map(r=>[r.w,r.n,r.ok,r.bad,r.skip,r.miss,r.hint,r.streak,r.last?new Date(r.last).toISOString().slice(0,16).replace('T',' '):'',weakSet.has(spellNorm(r.w))?'نعم':'لا']);
-  downloadBlob('dictation-words-'+dKey()+'.csv','text/csv;charset=utf-8','\ufeff'+[head].concat(rows).map(r=>r.map(csvEsc).join(',')).join('\r\n'));
-};
-$('progJson').onclick = ()=> downloadBlob('dictation-progress-'+dKey()+'.json','application/json',JSON.stringify({exportedAt:new Date().toISOString(),progress:P,prefs},null,2));
-$('progReset').onclick = ()=>{
-  if(confirm('هل تريدين مسح كل التقدّم والنتائج المحفوظة على هذا الجهاز؟')){ P=freshP(); saveP(); newSession(); renderGoal(); renderProg(); }
-};
-
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn) return;
+  if(btn.id==='progPractice'){
+    const list=weakList().slice(0,10).map(r=>r.w).filter(Boolean); if(!list.length) return;
+    $('progDlg').close(); $('win').classList.remove('show');
+    sentenceMode=false; $('sentBtn').textContent='📝 وضع الجملة';
+    build(list.join(' ')); say(target(), rate);
+    msg('🎯 تدريب على كلمات الضعف ('+list.length+')');
+  }else if(btn.id==='progCsv'){
+    const weakSet=new Set(weakList().map(r=>spellNorm(r.w)));
+    const head=['الكلمة','عدد المرات','صحيح','فشل','تخطّي','محاولات خاطئة','تلميحات','صحيح متتالي','آخر مرة','تحتاج تدريب'];
+    const rows=Object.values(P.words).map(r=>[r.w,r.n,r.ok,r.bad,r.skip,r.miss,r.hint,r.streak,r.last?new Date(r.last).toISOString().slice(0,16).replace('T',' '):'',weakSet.has(spellNorm(r.w))?'نعم':'لا']);
+    downloadBlob('dictation-words-'+dKey()+'.csv','text/csv;charset=utf-8','\ufeff'+[head].concat(rows).map(r=>r.map(csvEsc).join(',')).join('\r\n'));
+  }else if(btn.id==='progJson'){
+    downloadBlob('dictation-progress-'+dKey()+'.json','application/json',JSON.stringify({exportedAt:new Date().toISOString(),progress:P,prefs},null,2));
+  }else if(btn.id==='progReset'){
+    if(confirm('هل تريدين مسح كل التقدّم والنتائج المحفوظة على هذا الجهاز؟')){ P=freshP(); saveP(); newSession(); renderGoal(); renderProg(); }
+  }
+});
 /* ===== تنبيهات إملائية تعليمية ===== */
 const SIMSETS=['ضظ','سصث','تط','دذ','ذز','كق','عغ','حخج'];
 function alignOps(a,b){
